@@ -1,0 +1,14 @@
+# config
+config:
+  # mysql
+  mysql:
+    url: 10.0.32.100:33071
+    database: tt_ctp
+    username: root
+    password: root@accelecom.com
+
+spring:
+  redis:
+    host: 121.5.66.232
+    port: 6379
+    password: dev@redis.future.xleon.site

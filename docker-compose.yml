@@ -1,0 +1,18 @@
+version: "3.1"
+services:
+  mysql_ctp:
+    image: mysql:8.0
+    container_name: ctp_mysql
+    working_dir: /var/lib/mysql
+    volumes:
+      - /docker_config/mysql:/etc/mysql/conf.d
+      - /mysql:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=root@ctp.com
+      - MYSQL_DATABASE=ctp
+      - MYSQL_USER=dev
+      - MYSQL_PASSWORD=dev@ctp.com
+    ports:
+      - "33071:3306"
+    command: --default-authentication-plugin=mysql_native_password

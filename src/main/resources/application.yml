@@ -1,0 +1,76 @@
+# config
+config:
+  # mysql
+  mysql:
+    url: 10.0.4.4:33071
+    database: ctp
+    username: root
+    password: root@ctp.com
+  # user
+  user:
+    brokerId: 9999
+    userId: 192003
+    password: CTP1@accelecom.com
+  # trader address sim now 全天
+  traderAddress: tcp://180.168.146.187:10130
+#  marketAddress: tcp://180.168.146.187:10131
+#  trader address sim now 电信
+#  traderAddress: tcp://180.168.146.187:10201
+#  traderAddress: tcp://180.168.146.187:10202
+#   trader address sim now 移动
+#  traderAddress: tcp://218.202.237.33:10203
+#  marketAddress: tcp://218.202.237.33:10213
+  # market 国君 电信 level2
+  marketAddress: tcp://180.169.75.18:61213
+
+  exchange: SHFE
+
+  token: eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZW1wbGF0ZS5hY2NlbGVjb20uY29tIiwianRpIjoiODExODdhYjItODI2MC00ODMyLTlmNjYtZWEzMTIzNWQ5YzM4IiwiYXVkIjoiMiIsImlhdCI6MTYyOTc3MTc1Mn0.P-SQ6DdN3i6NJV5wICYHMaNhsdzIBfn8TpuY4LgX2Iw
+
+server:
+  port: 8800
+  compression:
+    enable: true
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureak: true
+    fetch-registry: true
+    service-url:
+       defaultZone: http://121.5.66.232:8100/eureka
+# spring
+spring:
+  application:
+    name: ctp
+  #admin client
+  boot:
+    admin:
+      client:
+        url: http://localhost:8001
+
+  profiles:
+    active: dev
+
+  # mysql
+  datasource:
+    url: jdbc:mysql://${config.mysql.url}/${config.mysql.database}?rewriteBatchedStatements=true
+    username: ${config.mysql.username}
+    password: ${config.mysql.password}
+
+  jackson:
+    date-formate: yyyy-MM-dd HH:mm:ss:SSS
+    time-zone: GMT+8
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  info:
+    env:
+      enabled: true
+#  endpoint:
+#    logfile:
+#      external-file: C:\Users\fei.xu-wan\Documents\CTPPro\logs\log_info.log
