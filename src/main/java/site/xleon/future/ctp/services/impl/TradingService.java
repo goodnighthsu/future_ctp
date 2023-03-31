@@ -50,8 +50,8 @@ public class TradingService implements ITradingService {
      */
     public void subscribe(List<String> instruments) {
         log.info("instruments subscribe start");
-        if (instruments.isEmpty()) {
-            log.error("instrument subscribe failure: no instruments found, subscribe skip");
+        if (instruments == null || instruments.isEmpty()) {
+            log.warn("instrument subscribe: no instruments found, subscribe skip");
             return;
         }
         // 订阅

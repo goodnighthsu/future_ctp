@@ -12,6 +12,7 @@ import site.xleon.future.ctp.core.MdSpiImpl;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,9 @@ public class CtpInfo {
         if (subscribeInstruments == null) {
             subscribeInstruments = dataService.readSubscribe();
         }
+        if (subscribeInstruments == null) {
+            subscribeInstruments = new ArrayList<>();
+        }
         return subscribeInstruments;
     }
 
@@ -50,17 +54,26 @@ public class CtpInfo {
     private List<InstrumentEntity> instruments;
     public List<InstrumentEntity> getInstruments(String tradingDay) {
         if (tradingDay == null ) {
-            // 从本地文件读取
-            if (instruments == null) {
-                instruments = dataService.readInstrumentsTradingDay(this.tradingDay);
+            // 从缓存中读取
+            if (instruments != null) {
+                return instruments;
             }
 
-            // 从缓存中读取
+            // 从本地文件读取
+            instruments = dataService.readInstrumentsTradingDay(this.tradingDay);
+            if (instruments == null) {
+                instruments = new ArrayList<>();
+            }
+
             return instruments;
         }
 
         // 从本地文件中读取
-        return dataService.readInstrumentsTradingDay(this.tradingDay);
+        List<InstrumentEntity> local =  dataService.readInstrumentsTradingDay(this.tradingDay);
+        if (local == null) {
+            local = new ArrayList<>();
+        }
+        return local;
     }
 
     @Autowired

@@ -16,6 +16,7 @@ import ctp.thosttraderapi.CThostFtdcTraderApi;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -93,13 +94,12 @@ public class TradeController {
             @RequestParam @Nullable List<Boolean> subscribes,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "50") Integer pageSize
-    ) throws IOException {
-
+    ) {
         List<InstrumentEntity> result = ctpInfo.getInstruments(tradingDay);
-        List<String> currentSubscribes =  ctpInfo.getSubscribeInstruments();
         // 标记是否订阅
+        List<String> finalCurrentSubscribes = ctpInfo.getSubscribeInstruments();
         result.forEach(item -> {
-            item.setIsSubscribe(currentSubscribes.contains(item.getInstrumentID()));
+            item.setIsSubscribe(finalCurrentSubscribes.contains(item.getInstrumentID()));
         });
 
         // keyword filter
