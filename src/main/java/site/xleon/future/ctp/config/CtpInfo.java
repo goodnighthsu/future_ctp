@@ -13,6 +13,7 @@ import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @EnableAsync
 @EnableScheduling
@@ -37,8 +38,10 @@ public class CtpInfo {
     }
 
     public void setSubscribeInstruments(List<String> subscribeInstruments) {
-        this.subscribeInstruments = subscribeInstruments;
+        // subscribeInstruments 去重
+        subscribeInstruments = subscribeInstruments.stream().distinct().collect(Collectors.toList());
         dataService.saveSubscribe(subscribeInstruments);
+        this.subscribeInstruments = subscribeInstruments;
     }
 
     /**

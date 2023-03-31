@@ -96,7 +96,7 @@ public class TradeController {
     ) throws IOException {
 
         List<InstrumentEntity> result = ctpInfo.getInstruments(tradingDay);
-        List<String> currentSubscribes =  dataService.readSubscribe();
+        List<String> currentSubscribes =  ctpInfo.getSubscribeInstruments();
         // 标记是否订阅
         result.forEach(item -> {
             item.setIsSubscribe(currentSubscribes.contains(item.getInstrumentID()));
@@ -147,8 +147,26 @@ public class TradeController {
      */
     @PutMapping("/instrument/subscribe")
     public Result<List<String>> subscribe(@RequestBody List<String> params) {
-        ctpInfo.setSubscribeInstruments(params);
-        tradingService.subscribe(params);
+        List<String> subscribes = ctpInfo.getSubscribeInstruments();
+        subscribes.addAll(params);
+        tradingService.subscribe(subscribes);
+        ctpInfo.setSubscribeInstruments(subscribes);
+        return Result.success(params);
+    }
+
+    /**
+     * 取消订阅
+     *
+     * @param params 合约id
+     * @return 取消订阅的合约
+     */
+    @PutMapping("/instrument/unsubscribe")
+    public Result<List<String>> unsubscribe(@RequestBody List<String> params) {
+        tradingService.unsubscribe(params);
+        // ctpInfo 移除订阅信息
+        List<String> subscribes = ctpInfo.getSubscribeInstruments();
+        subscribes.removeAll(params);
+        ctpInfo.setSubscribeInstruments(subscribes);
         return Result.success(params);
     }
 }

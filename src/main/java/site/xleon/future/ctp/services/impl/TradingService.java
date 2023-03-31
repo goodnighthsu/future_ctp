@@ -55,8 +55,24 @@ public class TradingService implements ITradingService {
             return;
         }
         // 订阅
+        instruments = instruments.stream().distinct().collect(Collectors.toList());
         String[] ids= instruments.toArray(new String[0]);
         mdApi.SubscribeMarketData(ids, ids.length);
         log.info("instruments subscribe total {} ", ids.length);
+    }
+
+    /**
+     * ctp 取消订阅合约
+     */
+    public void unsubscribe(List<String> instruments) {
+        log.info("instruments unsubscribe start");
+        if (instruments.isEmpty()) {
+            log.error("instrument unsubscribe failure: no instruments found, unsubscribe skip");
+            return;
+        }
+        // 取消订阅
+        String[] ids= instruments.toArray(new String[0]);
+        mdApi.UnSubscribeMarketData(ids, ids.length);
+        log.info("instruments unsubscribe total {} ", ids.length);
     }
 }
