@@ -42,6 +42,8 @@ eureka:
        defaultZone: http://121.5.66.232:8100/eureka
 # spring
 spring:
+  profiles:
+    active: dev
   application:
     name: ctp
   #admin client
@@ -49,10 +51,6 @@ spring:
     admin:
       client:
         url: http://localhost:8001
-
-  profiles:
-    active: dev
-
   # mysql
   datasource:
     url: jdbc:mysql://${config.mysql.url}/${config.mysql.database}?rewriteBatchedStatements=true

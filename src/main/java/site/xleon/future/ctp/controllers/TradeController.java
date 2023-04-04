@@ -1,7 +1,9 @@
 package site.xleon.future.ctp.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.cert.ocsp.Req;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 import site.xleon.future.ctp.Result;
@@ -24,12 +26,14 @@ import java.util.stream.Collectors;
 @RestController
 public class TradeController {
     private CThostFtdcTraderApi traderApi;
+
     @Autowired
     private void setTraderApi(CThostFtdcTraderApi traderApi) {
         this.traderApi = traderApi;
     }
 
     private CThostFtdcMdApi mdApi;
+
     @Autowired
     private void setMdApi(CThostFtdcMdApi mdApi) {
         this.mdApi = mdApi;
@@ -63,6 +67,7 @@ public class TradeController {
 
     /**
      * 交易日
+     *
      * @return trading day
      */
     @GetMapping("/tradingDay")
@@ -82,15 +87,15 @@ public class TradeController {
 
     /**
      * 返回交易日合约
-     * @param tradingDay 交易日， 默认当前交易日
      *
+     * @param tradingDay 交易日， 默认当前交易日
      * @return 合约
      * @throws IOException exception
      */
     @GetMapping("/all")
     public Result<List<InstrumentEntity>> allInstruments(
             @RequestParam @Nullable String tradingDay,
-            @RequestParam(defaultValue = "")String keyword,
+            @RequestParam(defaultValue = "") String keyword,
             @RequestParam @Nullable List<Boolean> subscribes,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "50") Integer pageSize
@@ -104,7 +109,7 @@ public class TradeController {
 
         // keyword filter
         result = result.stream().filter(item -> {
-            if (keyword != null && keyword.length() > 0 ) {
+            if (keyword != null && keyword.length() > 0) {
                 return item.getInstrumentID().contains(keyword);
             }
             return true;
@@ -118,7 +123,7 @@ public class TradeController {
         int total = result.size();
         page = Math.max(1, page);
         pageSize = Math.max(1, pageSize);
-        int start = Math.min((page-1)*pageSize, Math.max(total, 0));
+        int start = Math.min((page - 1) * pageSize, Math.max(total, 0));
         int end = Math.min((start + pageSize), Math.max(total, 0));
         List<InstrumentEntity> sub = result.subList(start, end);
         return Result.success(sub, total);
@@ -131,10 +136,11 @@ public class TradeController {
 
     /**
      * 获取订阅的合约
+     *
      * @return subscribe
      */
     @GetMapping("/instrument/subscribe")
-    public Result<List<String>> subscribeList()  {
+    public Result<List<String>> subscribeList() {
         List<String> instruments = ctpInfo.getSubscribeInstruments();
         mdApi.SubscribeMarketData(instruments.toArray(new String[0]), instruments.size());
         return Result.success(instruments);
@@ -142,6 +148,7 @@ public class TradeController {
 
     /**
      * 订阅合约
+     *
      * @param params 合约id
      * @return 订阅的合约
      */
@@ -168,5 +175,20 @@ public class TradeController {
         subscribes.removeAll(params);
         ctpInfo.setSubscribeInstruments(subscribes);
         return Result.success(params);
+    }
+
+    /**
+     * 获取指定合约的行情
+     */
+    @GetMapping("/instrument/market")
+    public Result<List<String>> market(
+            @RequestParam @NonNull String id,
+            @RequestParam @Nullable String tradingDay,
+            @RequestParam(defaultValue = "0") Integer index
+    ) {
+        if (tradingDay == null || tradingDay.isEmpty()) {
+            tradingDay = ctpInfo.getTradingDay();
+        }
+        return Result.success(dataService.readMarket(tradingDay, id, index));
     }
 }

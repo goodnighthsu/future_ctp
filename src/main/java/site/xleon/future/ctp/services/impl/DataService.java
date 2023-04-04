@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service("dataService")
@@ -74,15 +75,46 @@ public class DataService {
         saveJson(params, SUBSCRIBE_PATH);
     }
 
+    /**
+     * 获取交易日合约信息
+     * @param tradingDay 交易日
+     * @return 合约信息
+     */
     @SneakyThrows
     public List<InstrumentEntity> readInstrumentsTradingDay(String tradingDay) {
         Path path = Paths.get(DIR, "instruments_" + tradingDay + ".json");
         return readJson(path, InstrumentEntity.class);
     }
 
+    /**
+     * 保存交易日合约信息
+     * @param params 合约信息
+     * @param tradingDay 交易日
+     */
     @SneakyThrows
     public void saveInstrumentsTradingDay(List<InstrumentEntity> params, String tradingDay) {
         Path path = Paths.get(DIR, "instruments_" + tradingDay + ".json");
         saveJson(params, path);
+    }
+
+    /**
+     * 获取交易日合约市场信息
+     * @param tradingDay 交易日
+     * @param instrumentId 合约代码
+     * @param index 从第几行开始读取
+     */
+    public List<String> readMarket(String tradingDay, String instrumentId, int index) {
+        Path path = Paths.get(DIR, tradingDay, instrumentId + "_" + tradingDay + ".csv");
+        try {
+            List<String> lines = Files.readAllLines(path);
+            if (index == 0) {
+                return lines;
+            }
+            return lines.subList(index, lines.size());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return new ArrayList<>();
     }
 }

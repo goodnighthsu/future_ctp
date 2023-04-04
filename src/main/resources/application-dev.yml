@@ -7,6 +7,15 @@ config:
     username: root
     password: root@accelecom.com
 
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureak: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8100/eureka
+
 spring:
   redis:
     host: 121.5.66.232
