@@ -3,11 +3,9 @@ package site.xleon.future.ctp.mapper.impl;
 import site.xleon.future.ctp.mapper.IInstrumentMapper;
 import site.xleon.future.ctp.mapper.IInstrumentService;
 import site.xleon.future.ctp.models.InstrumentEntity;
-import site.xleon.future.ctp.services.impl.TradingService;
+import site.xleon.future.ctp.services.impl.TradeService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +15,7 @@ import java.util.List;
 public class InstrumentService extends ServiceImpl<IInstrumentMapper, InstrumentEntity> implements IInstrumentService {
 
     @Autowired
-    private TradingService tradingService;
+    private TradeService tradeService;
 
     @Override
     public List<InstrumentEntity> listTradingInstrumentsByExchange(String exchange) {

@@ -13,5 +13,5 @@ public class ApiConfig {
     }
 
     @Bean
-    public CThostFtdcMdApi mdApi() {return CThostFtdcMdApi.CreateFtdcMdApi("market", true, false);}
+    public CThostFtdcMdApi mdApi() {return CThostFtdcMdApi.CreateFtdcMdApi("market", false, false);}
 }

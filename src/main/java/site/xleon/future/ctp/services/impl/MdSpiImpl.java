@@ -1,14 +1,12 @@
-package site.xleon.future.ctp.core;
+package site.xleon.future.ctp.services.impl;
 
 import lombok.EqualsAndHashCode;
 import org.apache.commons.io.FileUtils;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
-import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.config.mybatisplus.TableNameParser;
 
 import site.xleon.future.ctp.mapper.TradingMapper;
-import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.models.TradingEntity;
 import ctp.thostmduserapi.*;
 import lombok.Data;
@@ -16,8 +14,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import site.xleon.future.ctp.services.impl.DataService;
-import site.xleon.future.ctp.services.impl.TradingService;
+import site.xleon.future.ctp.services.Ctp;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -25,10 +22,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
 /**
- * 行情
+ * 市场行情回调
  */
 @EqualsAndHashCode(callSuper = true)
 @Component
@@ -52,73 +48,43 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     private DataService dataService;
 
     @Autowired
-    private TradingService tradingService;
+    private TradeService tradeService;
 
     @Override
     public void OnFrontConnected(){
+        ctpInfo.setMarketFrontConnected(true);
         log.info("market front connected");
-        login();
     }
 
     @Override
     public void OnFrontDisconnected(int reason) {
         log.error("market front disconnected: {}", reason);
+        ctpInfo.setMarketFrontConnected(false);
     }
-
-
-    public void login() {
-        CThostFtdcReqUserLoginField field = new CThostFtdcReqUserLoginField();
-        UserConfig user = appConfig.getUser();
-        field.setBrokerID(user.getBrokerId());
-        field.setUserID(user.getUserId());
-        field.setPassword(user.getPassword());
-        int code = mdApi.ReqUserLogin(field, 0);
-        log.info("connected code: {}", code);
-    }
-
 
     @Override
-    @SneakyThrows
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        if (pRspUserLogin == null) {
-            log.error("OnRspUserLogin no response");
-            return;
-        }
-        log.info("Broker id: {}", pRspUserLogin.getBrokerID());
-
-        if (pRspInfo == null ) {
-            log.error("OnRspUserLogin no response info");
-            return;
-        }
-
-        log.info("OnRspUserLogin ErrorMsg: {} {}", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
-        if (pRspInfo.getErrorID() == 0) {
-            log.info("market login success");
-            log.info("trading day: {}", pRspUserLogin.getTradingDay());
-            loginSuccess(pRspUserLogin.getTradingDay());
-        }
-        // 未登录
-//        if ("19800100".equals(tradingDay)) {
-//            return;
-//        }
+        Ctp.get(0)
+            .append(response -> {
+                if (pRspUserLogin.getTradingDay().equals("19800100")) {
+                    pRspInfo.setErrorID(-1);
+                    pRspInfo.setErrorMsg("登录失败");
+                    ctpInfo.setMarketLogin(false);
+                    log.error("登录失败: {}", pRspInfo.getErrorMsg());
+                }else {
+                    ctpInfo.setMarketLogin(true);
+                    log.info("登录成功");
+                }
+                return pRspUserLogin.getTradingDay();
+            })
+            .marketFinish(pRspInfo, bIsLast);
     }
 
-    // 登录成功， 初始化
-    private void loginSuccess(String tradingDay) {
-        // save trading day
-        ctpInfo.setTradingDay(tradingDay);
-
-        //  从本地文件读取合约
-        List<InstrumentEntity> instruments = dataService.readInstrumentsTradingDay(tradingDay);
-        if (instruments == null) {
-            // 请求ctp获取合约
-            instruments = tradingService.listAllInstrument();
-            // 保存合约
-            dataService.saveInstrumentsTradingDay(instruments, tradingDay);
-        }
-
-        // 订阅
-        tradingService.subscribe(ctpInfo.getSubscribeInstruments());
+    public void onRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+        log.info("logout: {} {} {} {}", pUserLogout.getBrokerID(), pUserLogout.getUserID(), pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        Ctp.get(nRequestID)
+            .append(response -> pUserLogout.getUserID())
+            .marketFinish(pRspInfo, bIsLast);
     }
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
@@ -130,6 +96,9 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     @Override
     @SneakyThrows
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField data) {
+        if (data.getInstrumentID().equals("fu2309")) {
+            log.info("{} {} {}", data.getInstrumentID(), data.getUpdateTime(), dateFormat.format(new Date()));
+        }
         if (data == null) {
             log.error("depth market data is null");
             return;
@@ -192,9 +161,9 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
         string += dateFormat.format(new Date(System.currentTimeMillis())) + "\r\n";
 
         FileUtils.write(path.toFile(),  string, StandardCharsets.UTF_8, true);
-        if (data.getInstrumentID().equals("fu2305")) {
-            log.info("market data save: {} {}", data.getInstrumentID(), data.getUpdateTime());
-        }
+//        if (data.getInstrumentID().equals("fu2305")) {
+//            log.info("market data save: {} {}", data.getInstrumentID(), data.getUpdateTime());
+//        }
     }
 
     private SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
@@ -374,8 +343,10 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     }
 
     @Override
-    public void OnRspError(CThostFtdcRspInfoField cThostFtdcRspInfoField, int i, boolean b) {
-        super.OnRspError(cThostFtdcRspInfoField, i, b);
-        log.error("error: {} {}", cThostFtdcRspInfoField.getErrorID(), cThostFtdcRspInfoField.getErrorMsg());
+    public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
+        super.OnRspError(pRspInfo, nRequestID, bIsLast);
+        Ctp.get(nRequestID)
+            .append(response -> pRspInfo.getErrorMsg())
+            .marketFinish(pRspInfo, bIsLast);
     }
 }

@@ -1,6 +1,8 @@
 package site.xleon.future.ctp.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
+import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.Result;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Controller
 @ControllerAdvice
 public class DefaultExceptionHandler extends BasicErrorController {
@@ -41,12 +45,17 @@ public class DefaultExceptionHandler extends BasicErrorController {
         String message = (String) body.get("message");
         Result<String> result = Result.fail(message);
         Map<String, Object> map = JSONObject.parseObject(JSON.toJSONString(result), HashMap.class);
+        log.error("{}", map);
         return new ResponseEntity<>(map, getStatus(request));
     }
 
     @ResponseBody
     @ExceptionHandler
     public Result<String> defaultException(HttpServletRequest request, Exception exception) {
+        if (exception instanceof UndeclaredThrowableException) {
+            Throwable e  = ((UndeclaredThrowableException) exception).getUndeclaredThrowable();
+            return Result.fail(e.getMessage());
+        }
         return Result.fail(exception.getMessage());
     }
 }

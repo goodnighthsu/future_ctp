@@ -1,7 +1,7 @@
 package site.xleon.future.ctp.tasks;
 
 import site.xleon.future.ctp.config.app_config.AppConfig;
-import site.xleon.future.ctp.core.TraderSpiImpl;
+import site.xleon.future.ctp.services.impl.TraderSpiImpl;
 import ctp.thosttraderapi.CThostFtdcTraderApi;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

@@ -20,9 +20,6 @@ import java.util.List;
 public class DataService {
     private static final String DIR = "data";
 
-    @Autowired
-    private TradingService tradingService;
-
     /**
      * 当前订阅合约
      */
@@ -45,8 +42,6 @@ public class DataService {
             return null;
         }
 
-//        byte[] bytes = Files.readAllBytes(path);
-//        T result = JSON.parseObject(bytes, clazz);
         String jsonString = FileUtils.readFileToString(path.toFile(), StandardCharsets.UTF_8);
         return JSON.parseArray(jsonString, clazz);
 

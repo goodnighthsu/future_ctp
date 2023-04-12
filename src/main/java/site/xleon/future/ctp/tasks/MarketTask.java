@@ -1,7 +1,7 @@
 package site.xleon.future.ctp.tasks;
 
 import site.xleon.future.ctp.config.app_config.AppConfig;
-import site.xleon.future.ctp.core.MdSpiImpl;
+import site.xleon.future.ctp.services.impl.MdSpiImpl;
 import ctp.thostmduserapi.CThostFtdcMdApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
