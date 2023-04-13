@@ -13,7 +13,7 @@ import site.xleon.future.ctp.services.impl.TradeService;
  */
 @Aspect
 @Component
-public class TradeNeedLoginAspect {
+public class TradeLoginAspect {
 
     @Autowired
     private TradeService tradeService;
@@ -22,7 +22,9 @@ public class TradeNeedLoginAspect {
     public void tradeNeedLogin() {
     }
 
-    @Pointcut("execution(* site.xleon.future.ctp.services.impl.TradeService.auth()) ||  " +
+    @Pointcut("execution(* site.xleon.future.ctp.services.impl.TradeService.auth()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.TradeService.get*(..)) || " +
+            "execution(* site.xleon.future.ctp.services.impl.TradeService.set*(..)) || " +
             "execution(* site.xleon.future.ctp.services.impl.TradeService.login()) || " +
             "execution(* site.xleon.future.ctp.services.impl.TradeService.isLogin())")
     public void tradeNoNeedLogin() {
@@ -30,7 +32,7 @@ public class TradeNeedLoginAspect {
 
     @Before("tradeNeedLogin() && !tradeNoNeedLogin()")
     public void before() throws MyException {
-        if (!tradeService.isLogin()) {
+        if (!tradeService.getIsLogin()) {
             throw new MyException("请先登录交易");
         }
     }

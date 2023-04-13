@@ -22,16 +22,17 @@ public class MarketLoginAspect {
     public void needLogin() {
     }
 
-    @Pointcut("execution(* site.xleon.future.ctp.services.impl.MarketService.auth()) ||  " +
+    @Pointcut("execution(* site.xleon.future.ctp.services.impl.MarketService.auth()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MarketService.get*(..)) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MarketService.set*(..)) || " +
             "execution(* site.xleon.future.ctp.services.impl.MarketService.login()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.logout()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.isLogin())")
+            "execution(* site.xleon.future.ctp.services.impl.MarketService.logout())")
     public void noNeedLogin() {
     }
 
     @Before("needLogin() && !noNeedLogin()")
     public void before() throws MyException {
-        if (!marketService.isLogin()) {
+        if (!marketService.getIsLogin()) {
             throw new MyException("请先登录行情");
         }
     }

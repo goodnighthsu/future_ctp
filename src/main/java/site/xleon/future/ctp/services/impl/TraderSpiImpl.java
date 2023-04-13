@@ -1,7 +1,7 @@
 package site.xleon.future.ctp.services.impl;
 
+import lombok.SneakyThrows;
 import site.xleon.future.ctp.config.CtpInfo;
-import site.xleon.future.ctp.mapper.PositionsMapper;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.Ctp;
 import ctp.thosttraderapi.*;
@@ -26,27 +26,32 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     private CtpInfo ctpInfo;
 
     @Autowired
-    private PositionsMapper positionsMapper;
-
+    private TradeService tradeService;
 
     @Override
     public void OnRspError(CThostFtdcRspInfoField rspInfoField, int requestID, boolean isLast) {
         log.error("request {} error {}: {}", requestID, rspInfoField.getErrorID(), rspInfoField.getErrorMsg());
     }
 
-
     /**
      * 客户端与交易托管连接成功（还未登录）
      */
+    @SneakyThrows
     @Override
     public void OnFrontConnected(){
         log.info("trading front connected success");
-        ctpInfo.setTradingFrontConnected(true);
+        tradeService.setIsConnected(true);
     }
 
+    /**
+     * 客户端与交易托管连接断开
+     * @param nReason 原因
+     */
     @Override
     public  void OnFrontDisconnected(int nReason) {
         log.error("front disconnected: {}", nReason);
+        tradeService.setIsConnected(false);
+        tradeService.setIsLogin(false);
     }
 
     /**
@@ -88,9 +93,16 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
         log.error("update password: {} {}", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
     }
 
+    /**
+     * 查询合约响应
+     * @param instrumentField 合约
+     * @param infoField 响应信息
+     * @param requestId 请求id
+     * @param isLast 是否最后一条
+     */
     @Override
     public void OnRspQryInstrument(CThostFtdcInstrumentField instrumentField, CThostFtdcRspInfoField infoField, int requestId, boolean isLast) {
-        log.info("instrument: {}", instrumentField.getInstrumentID());
+//        log.info("instrument: {}", instrumentField.getInstrumentID());
         Ctp.get(requestId)
                 .append(response -> {
                     List<InstrumentEntity> instruments = (List<InstrumentEntity>)response;

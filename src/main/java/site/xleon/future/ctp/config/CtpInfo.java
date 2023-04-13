@@ -10,6 +10,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import site.xleon.future.ctp.core.MyException;
+import site.xleon.future.ctp.models.InstrumentEntity;
+import site.xleon.future.ctp.services.impl.MarketService;
+import site.xleon.future.ctp.services.impl.TradeService;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @EnableAsync
 @EnableScheduling
@@ -18,26 +24,11 @@ import site.xleon.future.ctp.core.MyException;
 @Component
 public class CtpInfo {
     /**
-     * 市场前置是否连接
+     * 交易日
      */
-    private boolean isMarketFrontConnected = false;
-
-    /**
-     * 是否登录
-     */
-    private boolean isMarketLogin = false;
-
-    /**
-     * 交易前置是否连接
-     */
-    private boolean isTradingFrontConnected = false;
-
     private String tradingDay;
     @SneakyThrows
     public String getTradingDay() {
-        if (!isMarketFrontConnected) {
-            throw new MyException("行情前置未连接");
-        }
         if (tradingDay == null) {
             tradingDay = mdApi.GetTradingDay();
         }
@@ -53,4 +44,5 @@ public class CtpInfo {
         setTradingDay(mdApi.GetTradingDay());
         log.warn("update trading day: {}", tradingDay);
     }
+
 }

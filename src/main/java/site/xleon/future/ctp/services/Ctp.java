@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.core.IMyFunction;
 import site.xleon.future.ctp.core.MyException;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -47,8 +48,7 @@ public class Ctp<T> {
     /**
      * 发起请求
      */
-    @SneakyThrows
-    public T request(IMyFunction<Integer, Integer>function) {
+    public T request(IMyFunction<Integer, Integer>function) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, MyException, InterruptedException {
         log.info("request {} {} create", id, function.getMethodName());
 
         Ctp<Object> oldRequest = REQUESTS.get(id);

@@ -5,11 +5,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 import site.xleon.future.ctp.Result;
+import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +31,7 @@ public class TradeController {
      * @return userId
      */
     @GetMapping("/auth")
-    public Result<String> auth() {
+    public Result<String> auth() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         String userId = tradeService.auth();
         return Result.success(userId);
     }
@@ -39,7 +41,7 @@ public class TradeController {
      * @return userId
      */
     @GetMapping("/login")
-    public Result<String> login() {
+    public Result<String> login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         String userId = tradeService.login();
         return Result.success(userId);
     }
@@ -66,7 +68,7 @@ public class TradeController {
             @RequestParam @Nullable List<Boolean> subscribes,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "50") Integer pageSize
-    ) {
+    ) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         List<InstrumentEntity> result = tradeService.instruments(tradingDay);
         // 标记是否订阅
         List<String> finalCurrentSubscribes = marketService.getSubscribeInstruments();

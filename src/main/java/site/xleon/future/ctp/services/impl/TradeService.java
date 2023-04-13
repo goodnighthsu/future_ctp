@@ -3,11 +3,11 @@ package site.xleon.future.ctp.services.impl;
 import ctp.thosttraderapi.CThostFtdcReqAuthenticateField;
 import ctp.thosttraderapi.CThostFtdcReqUserLoginField;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.config.app_config.UserConfig;
+import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.Ctp;
 import site.xleon.future.ctp.services.ITradingService;
@@ -17,6 +17,7 @@ import ctp.thosttraderapi.CThostFtdcTraderApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +41,17 @@ public class TradeService implements ITradingService {
     @Autowired
     private DataService dataService;
 
-    private boolean isLogin = false;
+    /**
+     * 前置是否连接
+     */
+    private Boolean isConnected = false;
+
+    /**
+     * 前置是否登录
+     */
+    private Boolean isLogin = false;
+
+    public static final Object loginLock = new Object();
 
     /**
      * 合约缓存
@@ -51,7 +62,7 @@ public class TradeService implements ITradingService {
      * 交易认证请求
      * @return userId
      */
-    public String auth()  {
+    public String auth() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         Ctp<String> ctp = new Ctp<>();
         return ctp.request(requestId -> {
             CThostFtdcReqAuthenticateField field = new CThostFtdcReqAuthenticateField();
@@ -68,8 +79,11 @@ public class TradeService implements ITradingService {
      * ctp 登录
      * @return userId
      */
-    public String login() {
-        if (isLogin) {
+    public String login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+        if (!getIsConnected()) {
+            throw new MyException("交易前置未连接");
+        }
+        if (getIsLogin()) {
             return appConfig.getUser().getUserId();
         }
         Ctp<String> ctp = new Ctp<>();
@@ -85,7 +99,7 @@ public class TradeService implements ITradingService {
         return userId;
     }
 
-    public List<InstrumentEntity> instruments (String tradingDay) {
+    public List<InstrumentEntity> instruments (String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         if (tradingDay == null ) {
             // 从缓存中读取
             if (instruments != null && !instruments.isEmpty()) {
@@ -120,8 +134,7 @@ public class TradeService implements ITradingService {
      * 查询交易日全市场合约
      * @return 合约
      */
-    @SneakyThrows
-    private List<InstrumentEntity> queryInstruments() {
+    private List<InstrumentEntity> queryInstruments() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         Ctp<List<InstrumentEntity>> ctp = new Ctp<>();
         return ctp.request(requestId -> {
             CThostFtdcQryInstrumentField field = new CThostFtdcQryInstrumentField();

@@ -4,7 +4,6 @@ import ctp.thostmduserapi.CThostFtdcMdApi;
 import ctp.thostmduserapi.CThostFtdcReqUserLoginField;
 import ctp.thostmduserapi.CThostFtdcUserLogoutField;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,14 +13,14 @@ import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.services.Ctp;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+@Data
 @Service("marketService")
 @Slf4j
-@Data
 public class MarketService {
     @Autowired
     private AppConfig appConfig;
@@ -35,7 +34,20 @@ public class MarketService {
     @Autowired
     private DataService dataService;
 
-    private boolean isLogin = false;
+    /**
+     * 前置是否连接
+     */
+    private Boolean isConnected = false;
+
+    /**
+     * 前置是否登录
+     */
+    private Boolean isLogin = false;
+
+    /**
+     * 登录状态通知
+     */
+    public static final Object loginLock = new Object();
 
     /**
      * 订阅的合约
@@ -46,17 +58,16 @@ public class MarketService {
      * 登录
      * @return trading day
      */
-    @SneakyThrows
-    public String login() {
-        if (!ctpInfo.isMarketFrontConnected()) {
+    public String login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+        if (!getIsConnected()) {
             throw new MyException("ctp 前置未连接");
         }
-        if (ctpInfo.isMarketLogin()) {
+        if (getIsLogin()) {
             return ctpInfo.getTradingDay();
         }
         Ctp<String> ctp = new Ctp<>();
         ctp.setId(0);
-        String tradingDay =  ctp.request(requestId -> {
+        String tradingDay = ctp.request(requestId -> {
             CThostFtdcReqUserLoginField field = new CThostFtdcReqUserLoginField();
             UserConfig user = appConfig.getUser();
             field.setBrokerID(user.getBrokerId());
@@ -65,7 +76,7 @@ public class MarketService {
             return mdApi.ReqUserLogin(field, requestId);
         });
         ctpInfo.setTradingDay(tradingDay);
-        isLogin = true;
+        setIsLogin(true);
         return tradingDay;
     }
 
@@ -73,8 +84,8 @@ public class MarketService {
      * 登出
      * @return userId
      */
-    public String logout() {
-        if (!ctpInfo.isMarketLogin()) {
+    public String logout() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+        if (!getIsLogin()) {
             return "logout success";
         }
         Ctp<String> ctp = new Ctp<>();

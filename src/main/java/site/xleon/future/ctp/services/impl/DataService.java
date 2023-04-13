@@ -3,7 +3,6 @@ package site.xleon.future.ctp.services.impl;
 import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.models.InstrumentEntity;
 

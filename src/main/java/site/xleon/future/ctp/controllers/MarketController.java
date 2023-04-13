@@ -7,12 +7,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 import site.xleon.future.ctp.Result;
 import site.xleon.future.ctp.config.CtpInfo;
+import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
 
-import java.util.ArrayList;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,14 +39,13 @@ public class MarketController {
      * @return trading day
      */
     @GetMapping("/login")
-    public Result<String> login() {
+    public Result<String> login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         String tradingDay = marketService.login();
         return Result.success(tradingDay);
     }
 
-
     @GetMapping("/logout")
-    public Result<String> logout() {
+    public Result<String> logout() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         String result = marketService.logout();
         return Result.success(result);
     }
@@ -106,16 +106,9 @@ public class MarketController {
      * 订阅全市场合约
      */
     @GetMapping("/subscribeAll")
-    public Result<String> subscribeAll() {
+    public Result<String> subscribeAll() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         List<InstrumentEntity> all = tradeService.instruments(null);
-//        all = all.stream().limit(1000).collect(Collectors.toList());
-//        InstrumentEntity entity = new InstrumentEntity();
-//        entity.setInstrumentID("fu2309");
-//        all.add(entity);
         marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
-//        List list = new ArrayList();
-//        list.add("fu2305");
-//        marketService.subscribe(list);
-        return Result.success("ok");
+        return Result.success("订阅成功: " + all.size());
     }
 }

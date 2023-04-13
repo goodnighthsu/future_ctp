@@ -12,16 +12,16 @@ config:
     userId: 192003
     password: CTP1@accelecom.com
   # trader address sim now 全天
-  traderAddress: tcp://180.168.146.187:10130
-  marketAddress: tcp://180.168.146.187:10131
+#  traderAddress: tcp://180.168.146.187:10130
+#  marketAddress: tcp://180.168.146.187:10131
 #  trader address sim now 电信
 #  traderAddress: tcp://180.168.146.187:10201
 #  traderAddress: tcp://180.168.146.187:10202
 #   trader address sim now 移动
-#  traderAddress: tcp://218.202.237.33:10203
+  traderAddress: tcp://218.202.237.33:10203
 #  marketAddress: tcp://218.202.237.33:10213
   # market 国君 电信 level2
-#  marketAddress: tcp://180.169.75.18:61213
+  marketAddress: tcp://180.169.75.18:61213
 
   exchange: SHFE
 
