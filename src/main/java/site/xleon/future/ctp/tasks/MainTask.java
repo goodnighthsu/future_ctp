@@ -49,27 +49,25 @@ public class MainTask {
                 threadFactory
         );
 
+        Thread autScribeThread = new Thread(() -> {
+            try {
+                autoScribe();
+            } catch (InterruptedException e) {
+                log.error("自动订阅失败: {}", e.getMessage());
+            }
+        });
+
         executor.execute(marketTask);
         executor.execute(traderTask);
-
-        try {
-            autoScribe();
-        } catch (InterruptedException | MyException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
-            log.error("自动订阅失败: {}", e.getMessage());
-        }
+        executor.execute(autScribeThread);
 
         return executor;
     }
 
     /**
      * 自动订阅
-     * @throws InterruptedException
-     * @throws MyException
-     * @throws InvocationTargetException
-     * @throws NoSuchMethodException
-     * @throws IllegalAccessException
      */
-    public void autoScribe() throws InterruptedException, MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public void autoScribe() throws InterruptedException {
         try {
             Thread.sleep(1000);
             // login

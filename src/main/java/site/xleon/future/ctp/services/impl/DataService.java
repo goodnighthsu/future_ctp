@@ -2,20 +2,22 @@ package site.xleon.future.ctp.services.impl;
 
 import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.models.InstrumentEntity;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service("dataService")
+@Slf4j
 public class DataService {
     private static final String DIR = "data";
 
@@ -98,15 +100,17 @@ public class DataService {
      * @param index 从第几行开始读取
      */
     public List<String> readMarket(String tradingDay, String instrumentId, int index) {
-        Path path = Paths.get(DIR, tradingDay, instrumentId + "_" + tradingDay + ".csv");
         try {
+            Path path = Paths.get(DIR, tradingDay, instrumentId + "_" + tradingDay + ".csv");
             List<String> lines = Files.readAllLines(path);
             if (index == 0) {
                 return lines;
             }
             return lines.subList(index, lines.size());
+        } catch (NoSuchFileException e) {
+            log.trace("文件不存在: {}", e.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("读取文件失败: ", e);
         }
 
         return new ArrayList<>();

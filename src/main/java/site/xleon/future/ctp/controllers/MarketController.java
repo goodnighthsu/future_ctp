@@ -89,26 +89,30 @@ public class MarketController {
 
     /**
      * 获取指定合约的行情
+     * @param instrument 合约id
+     * @param tradingDay 交易日
+     * @return 行情
      */
-    @GetMapping("/market")
-    public Result<List<String>> market(
-            @RequestParam @NonNull String id,
+    @GetMapping("/query")
+    public Result<List<String>> query(
+            @RequestParam @NonNull String instrument,
             @RequestParam @Nullable String tradingDay,
             @RequestParam(defaultValue = "0") Integer index
     ) {
         if (tradingDay == null || tradingDay.isEmpty()) {
             tradingDay = ctpInfo.getTradingDay();
         }
-        return Result.success(dataService.readMarket(tradingDay, id, index));
+        return Result.success(dataService.readMarket(tradingDay, instrument, index));
     }
 
     /**
      * 订阅全市场合约
+     * @return 订阅的合约数量
      */
     @GetMapping("/subscribeAll")
-    public Result<String> subscribeAll() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+    public Result<Integer> subscribeAll() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         List<InstrumentEntity> all = tradeService.instruments(null);
         marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
-        return Result.success("订阅成功: " + all.size());
+        return Result.success(all.size());
     }
 }
