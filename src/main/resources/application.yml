@@ -36,7 +36,7 @@ eureka:
   instance:
     prefer-ip-address: true
   client:
-    register-with-eureak: true
+    register-with-eureka: true
     fetch-registry: true
     service-url:
        defaultZone: http://121.5.66.232:8100/eureka
@@ -58,7 +58,7 @@ spring:
     password: ${config.mysql.password}
 
   jackson:
-    date-formate: yyyy-MM-dd HH:mm:ss:SSS
+    date-format: yyyy-MM-dd HH:mm:ss:SSS
     time-zone: GMT+8
 
 management:
