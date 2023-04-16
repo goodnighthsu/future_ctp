@@ -44,10 +44,6 @@ public class MarketService {
      */
     private Boolean isLogin = false;
 
-    /**
-     * 登录状态通知
-     */
-    public static final Object loginLock = new Object();
 
     /**
      * 订阅的合约

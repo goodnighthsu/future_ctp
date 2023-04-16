@@ -35,6 +35,11 @@ public class CtpInfo {
         return tradingDay;
     }
 
+    /**
+     * 登录状态通知
+     */
+    public static final Object loginLock = new Object();
+
 
     @Autowired
     private CThostFtdcMdApi mdApi;

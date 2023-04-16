@@ -39,8 +39,19 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     @SneakyThrows
     @Override
     public void OnFrontConnected(){
-        log.info("trading front connected success");
+        log.info("trading front connected");
         tradeService.setIsConnected(true);
+        new Thread(()-> {
+            try {
+                tradeService.login();
+                synchronized (CtpInfo.loginLock) {
+                    CtpInfo.loginLock.notifyAll();
+                    log.info("交易登录成功通知");
+                }
+            } catch (Exception e) {
+                log.error("market login error: {}", e.getMessage());
+            }
+        }).start();
     }
 
     /**

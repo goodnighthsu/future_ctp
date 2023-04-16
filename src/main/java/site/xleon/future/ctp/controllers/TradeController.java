@@ -97,4 +97,16 @@ public class TradeController {
         List<InstrumentEntity> sub = result.subList(start, end);
         return Result.success(sub, total);
     }
+
+    /**
+     * 返回交易日所有的合约
+     * @param tradingDay 交易日， 默认当前交易日
+     * @return 合约
+     */
+    @GetMapping("/instrument/all")
+    public Result<List<String>> all(@RequestParam @Nullable String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+        List<InstrumentEntity> result = tradeService.instruments(tradingDay);
+        List<String> instruments = result.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList());
+        return Result.success(instruments);
+    }
 }

@@ -39,8 +39,8 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
         new Thread(()-> {
             try {
                 marketService.login();
-                synchronized (MarketService.loginLock) {
-                    MarketService.loginLock.notifyAll();
+                synchronized (CtpInfo.loginLock) {
+                    CtpInfo.loginLock.notifyAll();
                     log.info("行情登录成功通知");
                 }
             } catch (Exception e) {

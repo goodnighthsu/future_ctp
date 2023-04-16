@@ -23,8 +23,6 @@ config:
   # market 国君 电信 level2
   marketAddress: tcp://180.169.75.18:61213
 
-  exchange: SHFE
-
   token: eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZW1wbGF0ZS5hY2NlbGVjb20uY29tIiwianRpIjoiODExODdhYjItODI2MC00ODMyLTlmNjYtZWEzMTIzNWQ5YzM4IiwiYXVkIjoiMiIsImlhdCI6MTYyOTc3MTc1Mn0.P-SQ6DdN3i6NJV5wICYHMaNhsdzIBfn8TpuY4LgX2Iw
 
 server:

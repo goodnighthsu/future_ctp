@@ -99,7 +99,17 @@ public class TradeService implements ITradingService {
         return userId;
     }
 
-    public List<InstrumentEntity> instruments (String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+    /**
+     * 获取交易日全市场合约
+     * @param tradingDay 交易日
+     * @return
+     * @throws MyException
+     * @throws InvocationTargetException
+     * @throws NoSuchMethodException
+     * @throws IllegalAccessException
+     * @throws InterruptedException
+     */
+    public List<InstrumentEntity> instruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         if (tradingDay == null ) {
             // 从缓存中读取
             if (instruments != null && !instruments.isEmpty()) {

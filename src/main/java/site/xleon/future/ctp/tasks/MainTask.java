@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.MarketService;
@@ -49,13 +50,7 @@ public class MainTask {
                 threadFactory
         );
 
-        Thread autScribeThread = new Thread(() -> {
-            try {
-                autoScribe();
-            } catch (InterruptedException e) {
-                log.error("自动订阅失败: {}", e.getMessage());
-            }
-        });
+        Thread autScribeThread = new Thread(this::autoScribe);
 
         executor.execute(marketTask);
         executor.execute(traderTask);
@@ -67,30 +62,37 @@ public class MainTask {
     /**
      * 自动订阅
      */
-    public void autoScribe() throws InterruptedException {
-        try {
-            Thread.sleep(1000);
-            // login
-            marketService.login();
-            tradeService.login();
+    public void autoScribe() {
+        while (true) {
+            // 订阅登录状态变更
+            synchronized (CtpInfo.loginLock) {
+                try {
+                    log.info("订阅登录状态");
+                    CtpInfo.loginLock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-            // 获取合约
-            List<InstrumentEntity> all = tradeService.instruments(null);
-            log.info("自动订阅合约获取成功: {}", all.size());
+                try {
+                    if (!marketService.getIsLogin()) {
+                        log.warn("自动订阅失败: 行情服务未登录");
+                        continue;
+                    }
+                    if (!tradeService.getIsLogin()) {
+                        log.warn("自动订阅失败: 交易服务未登录");
+                        continue;
+                    }
 
-            log.info("自动订阅开始");
-            marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
-
-        } catch (Exception e) {
-            log.error("自动订阅失败: {}", e.getMessage());
-            autoScribe();
-        }
-
-        //  订阅登录状态变更
-        synchronized (MarketService.loginLock) {
-            MarketService.loginLock.wait();
-            log.info("自动订阅收到登录成功信号");
-            autoScribe();
+                    log.info("自动订阅开始");
+                    // 获取合约
+                    List<InstrumentEntity> all = tradeService.instruments(null);
+                    log.info("自动订阅合约获取成功: {}", all.size());
+                    // 订阅合约
+                    marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
+                } catch (Exception e) {
+                    log.error("自动订阅失败: {}", e.getMessage());
+                }
+            }
         }
     }
 }
