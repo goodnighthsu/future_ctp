@@ -59,6 +59,13 @@ public class TradeService implements ITradingService {
     private List<InstrumentEntity> instruments;
 
     /**
+     *  清除合约缓存
+     */
+    public void clearInstruments() {
+        instruments = null;
+    }
+
+    /**
      * 交易认证请求
      * @return userId
      */
@@ -84,6 +91,7 @@ public class TradeService implements ITradingService {
             throw new MyException("交易前置未连接");
         }
         if (getIsLogin()) {
+            log.info("trade已登录: {}", appConfig.getUser().getUserId());
             return appConfig.getUser().getUserId();
         }
         Ctp<String> ctp = new Ctp<>();
@@ -96,6 +104,10 @@ public class TradeService implements ITradingService {
             return traderApi.ReqUserLogin(field, requestId);
         });
         isLogin = true;
+        synchronized (CtpInfo.loginLock) {
+            CtpInfo.loginLock.notifyAll();
+            log.info("交易登录成功通知");
+        }
         return userId;
     }
 

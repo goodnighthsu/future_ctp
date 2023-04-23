@@ -8,12 +8,15 @@ import org.springframework.web.bind.annotation.*;
 import site.xleon.future.ctp.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
+import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -114,5 +117,11 @@ public class MarketController {
         List<InstrumentEntity> all = tradeService.instruments(null);
         marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
         return Result.success(all.size());
+    }
+
+    @GetMapping("/compress")
+    public Result<String> compress(@RequestParam @NonNull String dir) throws IOException {
+        CompressUtils.tar(Paths.get("data", dir), Paths.get("data", dir + ".tar.gz"));
+        return Result.success("success");
     }
 }

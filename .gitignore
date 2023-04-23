@@ -35,5 +35,6 @@ build/
 ### local data ###
 data/
 logs/
+test/
 
 *.con

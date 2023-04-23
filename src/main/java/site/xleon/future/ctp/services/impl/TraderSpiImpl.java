@@ -24,7 +24,6 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
 
     @Autowired
     private CtpInfo ctpInfo;
-
     @Autowired
     private TradeService tradeService;
 
@@ -41,15 +40,13 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     public void OnFrontConnected(){
         log.info("trading front connected");
         tradeService.setIsConnected(true);
+        tradeService.setIsLogin(false);
         new Thread(()-> {
             try {
                 tradeService.login();
-                synchronized (CtpInfo.loginLock) {
-                    CtpInfo.loginLock.notifyAll();
-                    log.info("交易登录成功通知");
-                }
             } catch (Exception e) {
-                log.error("market login error: {}", e.getMessage());
+                log.error("交易登录错误: {}", e.getMessage());
+                tradeService.setIsLogin(false);
             }
         }).start();
     }

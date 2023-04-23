@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
@@ -85,6 +86,8 @@ public class MainTask {
 
                     log.info("自动订阅开始");
                     // 获取合约
+                    // 交易日可能切换，清除合约缓存
+                    tradeService.clearInstruments();
                     List<InstrumentEntity> all = tradeService.instruments(null);
                     log.info("自动订阅合约获取成功: {}", all.size());
                     // 订阅合约

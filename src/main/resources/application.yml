@@ -45,10 +45,10 @@ spring:
   application:
     name: ctp
   #admin client
-  boot:
-    admin:
-      client:
-        url: http://localhost:8001
+#  boot:
+#    admin:
+#      client:
+#        url: http://localhost:8001
   # mysql
   datasource:
     url: jdbc:mysql://${config.mysql.url}/${config.mysql.database}?rewriteBatchedStatements=true

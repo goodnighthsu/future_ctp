@@ -35,16 +35,14 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     @Override
     public void OnFrontConnected() {
         marketService.setIsConnected(true);
+        marketService.setIsLogin(false);
         log.info("market front connected");
         new Thread(()-> {
             try {
                 marketService.login();
-                synchronized (CtpInfo.loginLock) {
-                    CtpInfo.loginLock.notifyAll();
-                    log.info("行情登录成功通知");
-                }
             } catch (Exception e) {
-                log.error("market login error: {}", e.getMessage());
+                log.error("行情登录错误: {}", e.getMessage());
+                marketService.setIsLogin(false);
             }
         }).start();
     }

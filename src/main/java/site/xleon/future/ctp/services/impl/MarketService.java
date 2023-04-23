@@ -59,6 +59,7 @@ public class MarketService {
             throw new MyException("ctp 前置未连接");
         }
         if (getIsLogin()) {
+            log.info("market已登录: {}", ctpInfo.getTradingDay());
             return ctpInfo.getTradingDay();
         }
         Ctp<String> ctp = new Ctp<>();
@@ -73,6 +74,10 @@ public class MarketService {
         });
         ctpInfo.setTradingDay(tradingDay);
         setIsLogin(true);
+        synchronized (CtpInfo.loginLock) {
+            CtpInfo.loginLock.notifyAll();
+            log.info("行情登录成功通知");
+        }
         return tradingDay;
     }
 

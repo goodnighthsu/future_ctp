@@ -2,7 +2,6 @@ package site.xleon.future.ctp.services;
 
 import ctp.thosttraderapi.CThostFtdcRspInfoField;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.core.IMyFunction;
 import site.xleon.future.ctp.core.MyException;
