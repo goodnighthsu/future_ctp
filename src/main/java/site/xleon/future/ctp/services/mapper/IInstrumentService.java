@@ -1,4 +1,4 @@
-package site.xleon.future.ctp.mapper;
+package site.xleon.future.ctp.services.mapper;
 
 import org.apache.ibatis.annotations.Select;
 

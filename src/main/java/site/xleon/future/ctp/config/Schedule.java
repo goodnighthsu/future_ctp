@@ -50,7 +50,7 @@ public class Schedule {
      * 自动压缩
      */
     @Async
-    @Scheduled(cron = "0 0 7 * * ?")
+    @Scheduled(cron = "0 0 6 * * ?")
     public void autoCompress () {
         log.info("auto compress start");
         Path path = Paths.get("data");

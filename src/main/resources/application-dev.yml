@@ -6,6 +6,14 @@ config:
     database: tt_ctp
     username: root
     password: root@accelecom.com
+    # user
+  user:
+    brokerId: 9999
+    userId: 192003
+    password: CTP1@accelecom.com
+  #   trader address sim now 移动
+  traderAddress: tcp://218.202.237.33:10203
+  marketAddress: tcp://218.202.237.33:10213
 
 eureka:
   instance:

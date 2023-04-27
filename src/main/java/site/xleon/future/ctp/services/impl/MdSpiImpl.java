@@ -88,10 +88,6 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     @Override
     @SneakyThrows
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField data) {
-        if (data.getInstrumentID().equals("fu2309")) {
-            log.info("{} {} {}", data.getInstrumentID(), data.getUpdateTime(), dateFormat.format(new Date()));
-        }
-
         Path path = Paths.get("data", ctpInfo.getTradingDay(), data.getInstrumentID() + "_" + ctpInfo.getTradingDay() + ".csv");
         String string = data.getInstrumentID() + ","
                 + ctpInfo.getTradingDay() + ","
@@ -136,6 +132,7 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
                 + data.getBidVolume5() + ","
                 + data.getAskPrice5() + ","
                 + data.getAskVolume5() + ",";
+        string = string.replace("1.7976931348623157E308", "");
 
         if (data.getTradingDay() != null && data.getUpdateTime() != null  ){
             // trading action time

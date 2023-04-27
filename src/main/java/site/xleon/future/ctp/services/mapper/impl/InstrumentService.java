@@ -1,7 +1,7 @@
-package site.xleon.future.ctp.mapper.impl;
+package site.xleon.future.ctp.services.mapper.impl;
 
-import site.xleon.future.ctp.mapper.IInstrumentMapper;
-import site.xleon.future.ctp.mapper.IInstrumentService;
+import site.xleon.future.ctp.services.mapper.IInstrumentMapper;
+import site.xleon.future.ctp.services.mapper.IInstrumentService;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.TradeService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;

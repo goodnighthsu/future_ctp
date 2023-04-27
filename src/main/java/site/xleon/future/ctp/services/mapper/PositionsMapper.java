@@ -1,4 +1,4 @@
-package site.xleon.future.ctp.mapper;
+package site.xleon.future.ctp.services.mapper;
 
 import site.xleon.future.ctp.models.PositionsEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
