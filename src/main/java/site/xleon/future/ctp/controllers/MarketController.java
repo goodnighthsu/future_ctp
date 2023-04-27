@@ -119,6 +119,21 @@ public class MarketController {
         return Result.success(all.size());
     }
 
+    /**
+     * 合约详情
+     * @param instrument 合约id
+     * @param tradingDay 交易日
+     * @return 合约详情
+     * @throws MyException exception
+     */
+    @GetMapping("/instrument/info")
+    public Result<InstrumentEntity> info(@RequestParam @NonNull String instrument,
+                                         @RequestParam @NonNull String tradingDay) throws MyException {
+        InstrumentEntity result = dataService.readeInstrumentDetail(instrument, tradingDay)
+                .orElseThrow(() -> new MyException("instrument not found"));
+        return Result.success(result);
+    }
+
     @GetMapping("/compress")
     public Result<String> compress(@RequestParam @NonNull String dir) throws IOException {
         CompressUtils.tar(Paths.get("data", dir), Paths.get("data", dir + ".tar.gz"));

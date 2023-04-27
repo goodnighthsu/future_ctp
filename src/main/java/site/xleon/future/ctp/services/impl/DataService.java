@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service("dataService")
 @Slf4j
@@ -91,6 +92,16 @@ public class DataService {
     public void saveInstrumentsTradingDay(List<InstrumentEntity> params, String tradingDay) {
         Path path = Paths.get(DIR, "instruments_" + tradingDay + ".json");
         saveJson(params, path);
+    }
+
+    /**
+     * 合约详情
+     */
+    public Optional<InstrumentEntity> readeInstrumentDetail(String instrumentId, String tradingDay) {
+        return readInstrumentsTradingDay(tradingDay).stream()
+                .filter(instrumentEntity -> instrumentEntity.getInstrumentID().equals(instrumentId))
+                .findFirst();
+
     }
 
     /**
