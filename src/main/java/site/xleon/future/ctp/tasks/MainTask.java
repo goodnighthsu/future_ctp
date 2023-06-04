@@ -9,6 +9,7 @@ import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
+import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
 
@@ -38,6 +39,9 @@ public class MainTask {
      */
     @Autowired
     private TradeService tradeService;
+
+    @Autowired
+    private DataService dataService;
 
     @Bean
     public ExecutorService executorService() {
@@ -74,6 +78,19 @@ public class MainTask {
                     e.printStackTrace();
                 }
 
+                // simnow交易服务经常不成功，使用本地订阅文件订阅所有行情
+                try {
+                    if (!marketService.getIsLogin()) {
+                        log.warn("自动订阅失败: 行情服务未登录");
+                        continue;
+                    }
+                    List<String> subscribes = dataService.readSubscribe();
+                    marketService.subscribe(subscribes);
+                }catch (Exception e) {
+                    log.error("自动订阅失败: {}", e.getMessage());
+                }
+
+                /*
                 try {
                     if (!marketService.getIsLogin()) {
                         log.warn("自动订阅失败: 行情服务未登录");
@@ -95,6 +112,7 @@ public class MainTask {
                 } catch (Exception e) {
                     log.error("自动订阅失败: {}", e.getMessage());
                 }
+                 */
             }
         }
     }

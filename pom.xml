@@ -3,15 +3,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-<!--    <parent>-->
-<!--        <artifactId>spring-boot-starter-parent</artifactId>-->
-<!--        <groupId>org.springframework.boot</groupId>-->
-<!--        <version>2.7.0</version>-->
-<!--    </parent>-->
-
-<!--    <groupId>com.accelecom</groupId>-->
-<!--    <artifactId>ctp</artifactId>-->
-<!--    <version>1.0-SNAPSHOT</version>-->
     <parent>
         <artifactId>parent</artifactId>
         <groupId>site.xleon.future</groupId>
@@ -23,9 +14,25 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-eureka</artifactId>
-            <version>1.4.7.RELEASE</version>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
         </dependency>
         <!-- ctp -->
         <dependency>
@@ -139,6 +146,7 @@
             <artifactId>commons-compress</artifactId>
             <version>1.23.0</version>
         </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -152,6 +160,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.7.11</version>
                 <configuration>
                     <excludes>
                         <exclude>
@@ -164,6 +173,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
+                <version>2.5.2</version>
                 <executions>
                     <execution>
                         <id>install-thostmduserapi</id>

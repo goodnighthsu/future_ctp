@@ -1,22 +1,27 @@
 package site.xleon.future.ctp.config;
 
+import feign.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
-import site.xleon.future.ctp.core.utils.CompressUtils;
+import site.xleon.future.ctp.Result;
+import site.xleon.future.ctp.core.MyException;
+import site.xleon.future.ctp.services.CtpMasterClient;
+import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-
+import java.text.NumberFormat;
+import java.util.List;
 
 @Configuration
 @EnableAsync
@@ -26,6 +31,11 @@ public class Schedule {
     private TradeService tradeService;
     @Autowired
     private MarketService marketService;
+    @Autowired
+    private DataService dataService;
+
+    @Autowired
+    private CtpMasterClient marketClient;
 
     @Autowired
     private CtpInfo ctpInfo;
@@ -37,12 +47,37 @@ public class Schedule {
     @Scheduled(cron = "0 50 8,20 * * MON-FRI")
     public void autoLogin() {
         try {
-            log.info("自动登录");
-            tradeService.login();
+            log.info("行情自动登录");
+            // simnow 交易登录经常失败，先跳过
+//            tradeService.login();
             marketService.login();
-            log.info("自动登录成功, 交易日: {}", ctpInfo.getTradingDay());
+            log.info("行情自动登录成功, 交易日: {}", ctpInfo.getTradingDay());
         } catch (Exception e) {
-            log.error("自动登录失败: ", e);
+            log.error("行情自动登录失败: ", e);
+            try {
+                Thread.sleep(6000);
+            } catch (InterruptedException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+            autoLogin();
+        }
+    }
+
+    @Async
+    @Scheduled(cron = "0 50 8,20 * * MON-FRI")
+    public void autoTradeLogin() {
+        try {
+            log.info("交易自动登录");
+            String userId = tradeService.login();
+            log.info("交易自动登录成功, 用户: {}", userId);
+        } catch (Exception e) {
+            log.error("交易自动登录失败: {}", e.getMessage());
+            try {
+                Thread.sleep(60 * 1000 * 5);
+        } catch (InterruptedException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+            autoTradeLogin();
         }
     }
 
@@ -52,30 +87,14 @@ public class Schedule {
     @Async
     @Scheduled(cron = "0 0 6 * * ?")
     public void autoCompress () {
-        log.info("auto compress start");
-        Path path = Paths.get("data");
-        File[] files = path.toFile().listFiles();
-        if (files == null) {
-            log.info("auto compress skip, no files");
-            return;
-        }
-        Arrays.stream(files)
-                .forEach(item -> {
-                    // 是目录且不是当天交易日目录
-                    if (item.isDirectory() && !item.getName().equals(ctpInfo.getTradingDay())) {
-                        log.info("auto compress dir {}", item.getName());
-                        try {
-                            log.info("{} compress start", item.getName());
-                            CompressUtils.tar(item.toPath(), Paths.get("data", item.getName() + ".tar.gz"));
-                            log.info("{} compress start", item.getName());
-                            FileUtils.deleteDirectory(item);
-                            log.info("{} deleted", item.getName());
-                        } catch (IOException e) {
-                            log.error("{} compress error: ", item.getName(), e);
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-        log.info("auto compress finish");
+        log.info("自动压缩");
+        dataService.compress();
+        log.info("自动压缩完成");
+    }
+
+    @Async
+    @Scheduled(cron = "0 0 5 * * ?")
+    public void autoDownload () throws MyException {
+       marketService.download();
     }
 }

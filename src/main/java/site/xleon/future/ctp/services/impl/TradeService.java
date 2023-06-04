@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service("tradingService")
 @Slf4j
@@ -104,24 +105,31 @@ public class TradeService implements ITradingService {
             return traderApi.ReqUserLogin(field, requestId);
         });
         isLogin = true;
-        synchronized (CtpInfo.loginLock) {
-            CtpInfo.loginLock.notifyAll();
-            log.info("交易登录成功通知");
-        }
+//        synchronized (CtpInfo.loginLock) {
+//            CtpInfo.loginLock.notifyAll();
+//            log.info("交易登录成功通知");
+//        }
+        // 登入成功后，查询合约并保存合约到 subscribe.json文件
+        List<InstrumentEntity> aInstruments = listInstruments(null);
+        List<String> subscribes = aInstruments.stream()
+                .map(InstrumentEntity::getInstrumentID)
+                .collect(Collectors.toList());
+        dataService.saveSubscribe(subscribes);
+        log.info("交易登录成功, 保存{}条合约到 subscribe.json文件", subscribes.size());
         return userId;
     }
 
     /**
      * 获取交易日全市场合约
      * @param tradingDay 交易日
-     * @return
-     * @throws MyException
-     * @throws InvocationTargetException
-     * @throws NoSuchMethodException
-     * @throws IllegalAccessException
-     * @throws InterruptedException
+     * @return 合约
+     * @throws MyException exception
+     * @throws InvocationTargetException exception
+     * @throws NoSuchMethodException exception
+     * @throws IllegalAccessException exception
+     * @throws InterruptedException exception
      */
-    public List<InstrumentEntity> instruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+    public List<InstrumentEntity> listInstruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         if (tradingDay == null ) {
             // 从缓存中读取
             if (instruments != null && !instruments.isEmpty()) {

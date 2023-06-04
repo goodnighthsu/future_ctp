@@ -3,17 +3,27 @@ package site.xleon.future.ctp.services.impl;
 import ctp.thostmduserapi.CThostFtdcMdApi;
 import ctp.thostmduserapi.CThostFtdcReqUserLoginField;
 import ctp.thostmduserapi.CThostFtdcUserLogoutField;
+import feign.Response;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import site.xleon.future.ctp.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.services.Ctp;
+import site.xleon.future.ctp.services.CtpMasterClient;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +43,9 @@ public class MarketService {
 
     @Autowired
     private DataService dataService;
+
+    @Autowired
+    private CtpMasterClient marketClient;
 
     /**
      * 前置是否连接
@@ -124,16 +137,16 @@ public class MarketService {
      * ctp 订阅合约
      */
     public void subscribe(List<String> instruments) {
-        log.info("instruments subscribe start");
+        log.info("行情订阅开始");
         if (instruments == null || instruments.isEmpty()) {
-            log.warn("instrument subscribe: no instruments found, subscribe skip");
+            log.warn("行情订阅: 没有订阅合约，跳过订阅");
             return;
         }
         // 订阅
         instruments = instruments.stream().distinct().collect(Collectors.toList());
         String[] ids= instruments.toArray(new String[instruments.size()]);
         int code = mdApi.SubscribeMarketData(ids, ids.length);
-        log.info("instruments subscribe total {}, {}", ids.length, code);
+        log.info("行情订阅 {} 条, code: {}", ids.length, code);
     }
 
     /**
@@ -150,4 +163,65 @@ public class MarketService {
         mdApi.UnSubscribeMarketData(ids, ids.length);
         log.info("instruments unsubscribe total {} ", ids.length);
     }
+
+    public void download() throws MyException {
+        // 列出所有行情文件
+        Result<List<String>> result = marketClient.listTar();
+
+        List<String> fileNames = result.getData();
+        log.info("市场行情文件下载开始, 文件数量: {}", fileNames.size());
+        long start = System.currentTimeMillis();
+        for (String fileName : fileNames) {
+            Path backup = Paths.get("backup", fileName);
+            if (backup.toFile().exists()) {
+                log.info("市场行情文件已存在: {}", fileName);
+                continue;
+            }
+            log.info("市场行情文件下载开始: {}", fileName);
+            try (Response response = marketClient.marketFileDownload(fileName)) {
+                if (response.status() != 200) {
+                    throw new MyException("市场行情文件下载失败: " + fileName + " " + response.body().toString());
+                }
+                log.info(response.headers().toString());
+                String[] contentLengths = response.headers().get("Content-Length").toArray(new String[0]);
+                long contentLength = Long.parseLong(contentLengths[0]);
+
+//                rep.reset();
+//                rep.setContentType("application/octet-stream;charset=utf-8");
+//                rep.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+                try (
+                        FileOutputStream fos = new FileOutputStream(new File("backup", fileName));
+                        BufferedInputStream bis = new BufferedInputStream(response.body().asInputStream());
+//                        OutputStream output = rep.getOutputStream();
+                ) {
+                    byte[] buffer = new byte[8096];
+                    int len;
+                    long download = 0;
+                    long downloadInMinute = 0;
+                    NumberFormat nf = NumberFormat.getNumberInstance();
+                    nf.setMaximumFractionDigits(2);
+
+                    while ((len = bis.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len);
+                        download += len;
+                        downloadInMinute += len;
+                        if ((start + 15 * 1000) > System.currentTimeMillis()) {
+                            continue;
+                        }
+
+                        log.info("{} progress: {} / {}kb/s", fileName,
+                                nf.format(download * 100.0 / contentLength) + "%",
+                                nf.format(downloadInMinute / 1024 / 60)
+                        );
+                        downloadInMinute = 0;
+                        start = System.currentTimeMillis();
+                    }
+                } catch (IOException e) {
+                    throw new MyException(e.getMessage());
+                }
+            }
+            log.info("市场行情文件下载完成: {}", fileName);
+        }
+    }
 }
+

@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * 交易
  */
@@ -26,6 +25,8 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     private CtpInfo ctpInfo;
     @Autowired
     private TradeService tradeService;
+    @Autowired
+    private DataService dataService;
 
     @Override
     public void OnRspError(CThostFtdcRspInfoField rspInfoField, int requestID, boolean isLast) {
@@ -38,16 +39,17 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     @SneakyThrows
     @Override
     public void OnFrontConnected(){
-        log.info("trading front connected");
+        log.info("交易前置连接成功");
         tradeService.setIsConnected(true);
         tradeService.setIsLogin(false);
         new Thread(()-> {
             try {
                 tradeService.login();
             } catch (Exception e) {
-                log.error("交易登录错误: {}", e.getMessage());
+                log.error("交易登录失败: {}", e.getMessage());
                 tradeService.setIsLogin(false);
             }
+
         }).start();
     }
 

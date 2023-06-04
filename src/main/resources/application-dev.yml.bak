@@ -1,11 +1,11 @@
 # config
 config:
   # mysql
-  mysql:
-    url: 10.0.32.100:33071
-    database: tt_ctp
-    username: root
-    password: root@accelecom.com
+#  mysql:
+#    url: 10.0.32.100:33071
+#    database: tt_ctp
+#    username: root
+#    password: root@accelecom.com
     # user
   user:
     brokerId: 9999

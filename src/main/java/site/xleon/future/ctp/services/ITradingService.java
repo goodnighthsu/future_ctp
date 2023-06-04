@@ -18,5 +18,5 @@ public interface ITradingService {
      * 交易日全市场合约
      * @return 合约
      */
-    List<InstrumentEntity> instruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException;
+    List<InstrumentEntity> listInstruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException;
 }

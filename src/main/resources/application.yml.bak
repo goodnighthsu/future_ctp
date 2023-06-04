@@ -1,11 +1,11 @@
 # config
 config:
   # mysql
-  mysql:
-    url: 10.0.4.4:33071
-    database: ctp
-    username: root
-    password: root@ctp.com
+#  mysql:
+#    url: 10.0.4.4:33071
+#    database: ctp
+#    username: root
+#    password: root@ctp.com
   # user
   user:
     brokerId: 9999
@@ -30,20 +30,24 @@ server:
   compression:
     enable: true
 
-eureka:
-  instance:
-    prefer-ip-address: true
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-       defaultZone: http://121.5.66.232:8100/eureka
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#       defaultZone: http://121.5.66.232:8100/eureka
 # spring
 spring:
   profiles:
-    active: dev
+#    active: prod
   application:
     name: ctp
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.201:8848
   #admin client
 #  boot:
 #    admin:
@@ -51,7 +55,7 @@ spring:
 #        url: http://localhost:8001
   # mysql
   datasource:
-    url: jdbc:mysql://${config.mysql.url}/${config.mysql.database}?rewriteBatchedStatements=true
+    url: jdbc:mysql://${config.mysql.url}/${config.mysql.database}?rlewriteBatchedStatements=true
     username: ${config.mysql.username}
     password: ${config.mysql.password}
 

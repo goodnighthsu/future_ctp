@@ -69,7 +69,7 @@ public class TradeController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "50") Integer pageSize
     ) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        List<InstrumentEntity> result = tradeService.instruments(tradingDay);
+        List<InstrumentEntity> result = tradeService.listInstruments(tradingDay);
         // 标记是否订阅
         List<String> finalCurrentSubscribes = marketService.getSubscribeInstruments();
         result.forEach(item -> {
@@ -105,7 +105,7 @@ public class TradeController {
      */
     @GetMapping("/instrument/all")
     public Result<List<String>> all(@RequestParam @Nullable String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        List<InstrumentEntity> result = tradeService.instruments(tradingDay);
+        List<InstrumentEntity> result = tradeService.listInstruments(tradingDay);
         List<String> instruments = result.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList());
         return Result.success(instruments);
     }

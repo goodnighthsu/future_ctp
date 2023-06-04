@@ -26,7 +26,8 @@ public class MarketLoginAspect {
             "execution(* site.xleon.future.ctp.services.impl.MarketService.get*(..)) || " +
             "execution(* site.xleon.future.ctp.services.impl.MarketService.set*(..)) || " +
             "execution(* site.xleon.future.ctp.services.impl.MarketService.login()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.logout())")
+            "execution(* site.xleon.future.ctp.services.impl.MarketService.logout()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MarketService.download())")
     public void noNeedLogin() {
     }
 
