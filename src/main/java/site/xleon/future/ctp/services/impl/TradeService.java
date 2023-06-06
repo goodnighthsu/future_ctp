@@ -16,6 +16,8 @@ import ctp.thosttraderapi.CThostFtdcQryInstrumentField;
 import ctp.thosttraderapi.CThostFtdcTraderApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import site.xleon.future.ctp.services.mapper.InstrumentMapper;
+import site.xleon.future.ctp.services.mapper.impl.InstrumentService;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -38,6 +40,12 @@ public class TradeService implements ITradingService {
 
     @Autowired
     private CThostFtdcTraderApi traderApi;
+
+    @Autowired
+    private InstrumentMapper instrumentMapper;
+
+    @Autowired
+    private InstrumentService instrumentService;;
 
     @Autowired
     private DataService dataService;
@@ -116,6 +124,19 @@ public class TradeService implements ITradingService {
                 .collect(Collectors.toList());
         dataService.saveSubscribe(subscribes);
         log.info("交易登录成功, 保存{}条合约到 subscribe.json文件", subscribes.size());
+        // 保存到数据库
+        List<InstrumentEntity> addedInstruments = new ArrayList<>();
+        aInstruments.forEach(instrument -> {
+            InstrumentEntity entity = instrumentMapper.getByInstrumentId(instrument.getInstrumentID());
+            if (entity != null) return;
+            addedInstruments.add(instrument);
+            log.info("add instrument: {}", instrument.getInstrumentID());
+        });
+
+        log.info("save instruments to db");
+        instrumentService.saveBatch(addedInstruments);
+        log.info("save instruments success");
+
         return userId;
     }
 

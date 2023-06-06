@@ -1,10 +1,8 @@
 package site.xleon.future.ctp.services.mapper;
 
-import org.apache.ibatis.annotations.Select;
-
 import java.util.List;
 
-public interface IInstrumentService<InstrumentEntity> {
+public interface InstrumentService<InstrumentEntity> {
 
     /**
      * 获取所有交易中的期货合约

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -151,9 +152,23 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
                     instrument.setProductID(instrumentField.getProductID());
                     instrument.setUnderlyingInstrID(instrumentField.getUnderlyingInstrID());
 
+                    if (instrument.getLongMarginRatio() == Double.MAX_VALUE) {
+                        instrument.setLongMarginRatio(0);
+                    }
+                    if (instrument.getShortMarginRatio() == Double.MAX_VALUE) {
+                        instrument.setShortMarginRatio(0);
+                    }
+                    if (instrument.getStrikePrice() == Double.MAX_VALUE) {
+                        instrument.setStrikePrice(0);
+                    }
+                    if (instrument.getUnderlyingMultiple() == Double.MAX_VALUE) {
+                        instrument.setUnderlyingMultiple(0);
+                    }
+
                     instruments.add(instrument);
                     return instruments;
                 })
                 .finish(infoField, isLast);
     }
+
 }

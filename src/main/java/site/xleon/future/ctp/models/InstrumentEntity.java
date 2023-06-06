@@ -11,7 +11,7 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@TableName("instruments")
+@TableName("instrument")
 public class InstrumentEntity extends BaseEntity {
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
