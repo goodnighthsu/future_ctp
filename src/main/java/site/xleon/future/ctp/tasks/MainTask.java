@@ -105,7 +105,7 @@ public class MainTask {
                     // 获取合约
                     // 交易日可能切换，清除合约缓存
                     tradeService.clearInstruments();
-                    List<InstrumentEntity> all = tradeService.instruments(null);
+                    List<InstrumentEntity> all = tradeService.listInstruments(null);
                     log.info("自动订阅合约获取成功: {}", all.size());
                     // 订阅合约
                     marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));

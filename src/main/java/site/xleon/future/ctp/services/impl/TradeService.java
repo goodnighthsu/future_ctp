@@ -105,10 +105,10 @@ public class TradeService implements ITradingService {
             return traderApi.ReqUserLogin(field, requestId);
         });
         isLogin = true;
-//        synchronized (CtpInfo.loginLock) {
-//            CtpInfo.loginLock.notifyAll();
-//            log.info("交易登录成功通知");
-//        }
+        synchronized (CtpInfo.loginLock) {
+            CtpInfo.loginLock.notifyAll();
+            log.info("交易登录成功通知");
+        }
         // 登入成功后，查询合约并保存合约到 subscribe.json文件
         List<InstrumentEntity> aInstruments = listInstruments(null);
         List<String> subscribes = aInstruments.stream()

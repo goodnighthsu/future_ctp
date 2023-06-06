@@ -1,8 +1,6 @@
 package site.xleon.future.ctp.controllers;
 
-import feign.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
@@ -14,7 +12,6 @@ import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.InstrumentEntity;
-import site.xleon.future.ctp.services.CtpMasterClient;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
