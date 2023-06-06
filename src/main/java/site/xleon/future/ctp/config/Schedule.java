@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
+import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.services.CtpMasterClient;
 import site.xleon.future.ctp.services.impl.DataService;
@@ -16,6 +17,8 @@ import site.xleon.future.ctp.services.impl.TradeService;
 @EnableAsync
 @Slf4j
 public class Schedule {
+    @Autowired
+    private AppConfig config;
     @Autowired
     private TradeService tradeService;
     @Autowired
@@ -77,6 +80,10 @@ public class Schedule {
     @Async
     @Scheduled(cron = "0 0 6 * * ?")
     public void autoCompress () {
+        if (!config.getSchedule().getMarketDataAutoCompress()) {
+            log.info("自动压缩跳过");
+            return;
+        }
         log.info("自动压缩");
         dataService.compress();
         log.info("自动压缩完成");
@@ -85,6 +92,10 @@ public class Schedule {
     @Async
     @Scheduled(cron = "0 0 5 * * ?")
     public void autoDownload () throws MyException {
+        if (!config.getSchedule().getDownloadCtpData()) {
+            log.info("行情文件下载跳过");
+            return;
+        }
        marketService.download();
     }
 }

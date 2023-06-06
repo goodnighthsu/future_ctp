@@ -15,17 +15,10 @@ public class AppConfig {
     private UserConfig user;
     private String traderAddress;
     private String marketAddress;
-    private String exchange;
+    private ScheduleConfig schedule;
 
     /**
-     * websocket token
+     * web socket token
      */
     private String token;
-
-    /**
-     *  合约
-     */
-    private Set<String> instruments;
-
-
 }
