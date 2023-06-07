@@ -78,6 +78,4 @@ public class InstrumentEntity extends BaseEntity {
     private String productID;
     ///基础商品代码
     private String underlyingInstrID;
-
-    private Boolean isSubscribe;
 }

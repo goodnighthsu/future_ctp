@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import site.xleon.future.ctp.Result;
+import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.config.app_config.UserConfig;
@@ -24,7 +24,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -115,22 +114,6 @@ public class MarketService {
         return userId;
     }
 
-    public List<String> getSubscribeInstruments() {
-        if (subscribeInstruments == null) {
-            subscribeInstruments = dataService.readSubscribe();
-        }
-        if (subscribeInstruments == null) {
-            subscribeInstruments = new ArrayList<>();
-        }
-        return subscribeInstruments;
-    }
-
-    public void setSubscribeInstruments(List<String> subscribeInstruments) {
-        // subscribeInstruments 去重
-        List<String> _subscribed = subscribeInstruments.stream().distinct().collect(Collectors.toList());
-        dataService.saveSubscribe(_subscribed);
-        this.subscribeInstruments = _subscribed;
-    }
 
 
     /**

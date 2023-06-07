@@ -1,28 +1,27 @@
 package site.xleon.future.ctp.controllers;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
-import site.xleon.future.ctp.Result;
+import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.config.CtpInfo;
-import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.core.MyException;
-import site.xleon.future.ctp.core.utils.CompressUtils;
+import site.xleon.future.ctp.core.utils.Utils;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
-import site.xleon.future.ctp.services.impl.TradeService;
+import site.xleon.future.ctp.services.mapper.InstrumentMapper;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -34,10 +33,10 @@ public class MarketController {
     private CtpInfo ctpInfo;
 
     @Autowired
-    private MarketService marketService;
+    private InstrumentMapper instrumentMapper;
 
     @Autowired
-    private TradeService tradeService;
+    private MarketService marketService;
 
     @Autowired
     private DataService dataService;
@@ -66,37 +65,6 @@ public class MarketController {
     }
 
     /**
-     * 订阅合约
-     *
-     * @param params 合约id
-     * @return 订阅的合约
-     */
-    @PutMapping("/subscribe")
-    public Result<List<String>> subscribe(@RequestBody List<String> params) {
-        List<String> subscribes = marketService.getSubscribeInstruments();
-        subscribes.addAll(params);
-        marketService.subscribe(subscribes);
-        marketService.setSubscribeInstruments(subscribes);
-        return Result.success(params);
-    }
-
-    /**
-     * 取消订阅
-     *
-     * @param params 合约id
-     * @return 取消订阅的合约
-     */
-    @PutMapping("/unsubscribe")
-    public Result<List<String>> unsubscribe(@RequestBody List<String> params) {
-        marketService.unsubscribe(params);
-        // ctpInfo 移除订阅信息
-        List<String> subscribes = marketService.getSubscribeInstruments();
-        subscribes.removeAll(params);
-        marketService.setSubscribeInstruments(subscribes);
-        return Result.success(params);
-    }
-
-    /**
      * 获取指定合约的行情
      *
      * @param instrument 合约id
@@ -116,43 +84,18 @@ public class MarketController {
     }
 
     /**
-     * 订阅全市场合约
-     *
-     * @return 订阅的合约数量
-     */
-    @GetMapping("/subscribeAll")
-    public Result<Integer> subscribeAll() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        List<InstrumentEntity> all = tradeService.listInstruments(null);
-        marketService.subscribe(all.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList()));
-        return Result.success(all.size());
-    }
-
-    /**
      * 合约详情
      *
      * @param instrument 合约id
-     * @param tradingDay 交易日
      * @return 合约详情
      * @throws MyException exception
      */
     @GetMapping("/instrument/info")
-    public Result<InstrumentEntity> info(@RequestParam @NonNull String instrument,
-                                         @RequestParam @NonNull String tradingDay) throws MyException {
-        InstrumentEntity result = dataService.readeInstrumentDetail(instrument, tradingDay)
-                .orElseThrow(() -> new MyException("instrument not found"));
+    public Result<InstrumentEntity> info(@RequestParam @NonNull String instrument) throws MyException {
+        QueryWrapper<InstrumentEntity> query = new QueryWrapper<>();
+        query.select("*").eq("instrument_i_d", instrument);
+        InstrumentEntity result = instrumentMapper.selectOne(query);
         return Result.success(result);
-    }
-
-    @GetMapping("/compress")
-    public Result<String> compress(@RequestParam @NonNull String dir) throws IOException {
-        CompressUtils.tar(Paths.get("data", dir), Paths.get("data", dir + ".tar.gz"));
-        return Result.success("success");
-    }
-
-    @GetMapping("/compress/all")
-    public Result<String> compressAll() {
-        dataService.compress();
-        return Result.success("success");
     }
 
     /**
@@ -198,10 +141,25 @@ public class MarketController {
        marketService.download();
     }
 
-    @Autowired
-    private AppConfig appConfig;
-    @GetMapping("/config")
-    public Result<AppConfig> config() {
-        return Result.success(appConfig);
+    /**
+     * 返回分页合约
+     *
+     * @return 合约
+     */
+    @GetMapping("/instruments")
+    public Result<List<InstrumentEntity>> instruments(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "50") Integer pageSize) {
+        Page<InstrumentEntity> paging = Utils.page(page, pageSize);
+        QueryWrapper<InstrumentEntity> query = new QueryWrapper<>();
+
+        if (keyword != null && keyword.length() > 0 ) {
+            query.eq("id", keyword);
+        }
+        query.select().orderByDesc("id");
+        Page<InstrumentEntity> instruments = instrumentMapper.selectPage(paging, query);
+
+        return Result.page(instruments);
     }
 }

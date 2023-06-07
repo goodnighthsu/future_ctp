@@ -2,8 +2,7 @@ package site.xleon.future.ctp.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.stereotype.Service;
-import site.xleon.future.ctp.Result;
+import site.xleon.future.ctp.models.Result;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.boot.autoconfigure.web.ErrorProperties;

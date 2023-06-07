@@ -13,10 +13,4 @@ public interface ITradingService {
      * @return 用户id
      */
     String login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException;
-
-    /**
-     * 交易日全市场合约
-     * @return 合约
-     */
-    List<InstrumentEntity> listInstruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException;
 }

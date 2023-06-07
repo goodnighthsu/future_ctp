@@ -103,4 +103,6 @@ public interface TradingMapper extends BaseMapper<TradingEntity> {
 
     @Select("SELECT id FROM ${tableName} WHERE trading_action_time = #{tradingActionTime}")
     List<TradingEntity> listByActionTime(String tableName, Date tradingActionTime);
+
+
 }

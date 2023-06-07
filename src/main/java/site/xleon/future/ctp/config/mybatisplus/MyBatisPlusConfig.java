@@ -1,8 +1,10 @@
 package site.xleon.future.ctp.config.mybatisplus;
 
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.handler.TableNameHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.DynamicTableNameInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,6 +27,9 @@ public class MyBatisPlusConfig {
         map.put("trading_entity", new TableNameParser());
         dynamicTableNameInnerInterceptor.setTableNameHandlerMap(map);
         mybatisPlusInterceptor.addInnerInterceptor(dynamicTableNameInnerInterceptor);
+
+        // 分页
+        mybatisPlusInterceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
 
         return  mybatisPlusInterceptor;
     }

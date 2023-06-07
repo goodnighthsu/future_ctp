@@ -3,6 +3,7 @@ package site.xleon.future.ctp.services.impl;
 import ctp.thosttraderapi.CThostFtdcReqAuthenticateField;
 import ctp.thosttraderapi.CThostFtdcReqUserLoginField;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
@@ -12,7 +13,6 @@ import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.Ctp;
 import site.xleon.future.ctp.services.ITradingService;
 import ctp.thostmduserapi.CThostFtdcMdApi;
-import ctp.thosttraderapi.CThostFtdcQryInstrumentField;
 import ctp.thosttraderapi.CThostFtdcTraderApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,6 @@ import site.xleon.future.ctp.services.mapper.impl.InstrumentService;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service("tradingService")
 @Slf4j
@@ -45,7 +44,7 @@ public class TradeService implements ITradingService {
     private InstrumentMapper instrumentMapper;
 
     @Autowired
-    private InstrumentService instrumentService;;
+    private InstrumentService instrumentService;
 
     @Autowired
     private DataService dataService;
@@ -61,18 +60,6 @@ public class TradeService implements ITradingService {
     private Boolean isLogin = false;
 
     public static final Object loginLock = new Object();
-
-    /**
-     * 合约缓存
-     */
-    private List<InstrumentEntity> instruments;
-
-    /**
-     *  清除合约缓存
-     */
-    public void clearInstruments() {
-        instruments = null;
-    }
 
     /**
      * 交易认证请求
@@ -95,7 +82,8 @@ public class TradeService implements ITradingService {
      * ctp 登录
      * @return userId
      */
-    public String login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
+    @SneakyThrows
+    public String login() {
         if (!getIsConnected()) {
             throw new MyException("交易前置未连接");
         }
@@ -112,84 +100,72 @@ public class TradeService implements ITradingService {
             field.setPassword(user.getPassword());
             return traderApi.ReqUserLogin(field, requestId);
         });
+
+        //
         isLogin = true;
         synchronized (CtpInfo.loginLock) {
             CtpInfo.loginLock.notifyAll();
             log.info("交易登录成功通知");
         }
-        // 登入成功后，查询合约并保存合约到 subscribe.json文件
-        List<InstrumentEntity> aInstruments = listInstruments(null);
-        List<String> subscribes = aInstruments.stream()
-                .map(InstrumentEntity::getInstrumentID)
-                .collect(Collectors.toList());
-        dataService.saveSubscribe(subscribes);
-        log.info("交易登录成功, 保存{}条合约到 subscribe.json文件", subscribes.size());
-        // 保存到数据库
-        List<InstrumentEntity> addedInstruments = new ArrayList<>();
-        aInstruments.forEach(instrument -> {
-            InstrumentEntity entity = instrumentMapper.getByInstrumentId(instrument.getInstrumentID());
-            if (entity != null) return;
-            addedInstruments.add(instrument);
-            log.info("add instrument: {}", instrument.getInstrumentID());
-        });
-
-        log.info("save instruments to db");
-        instrumentService.saveBatch(addedInstruments);
-        log.info("save instruments success");
 
         return userId;
     }
 
     /**
-     * 获取交易日全市场合约
-     * @param tradingDay 交易日
-     * @return 合约
-     * @throws MyException exception
-     * @throws InvocationTargetException exception
-     * @throws NoSuchMethodException exception
-     * @throws IllegalAccessException exception
-     * @throws InterruptedException exception
+     * 更新合约信息库
      */
-    public List<InstrumentEntity> listInstruments(String tradingDay) throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        if (tradingDay == null ) {
-            // 从缓存中读取
-            if (instruments != null && !instruments.isEmpty()) {
-                return instruments;
+    @SneakyThrows
+    public void updateInstrument() {
+        // 登入成功后，查询合约
+        List<InstrumentEntity> aInstruments = listTrading();
+        // 需要更新的
+        List<InstrumentEntity> updates = new ArrayList<>();
+        // 需要新增的
+        List<InstrumentEntity> adds = new ArrayList<>();
+        // 列出数据库所有在交易的合约
+        List<InstrumentEntity> tradings = instrumentMapper.listTradings();
+        tradings = tradings == null ? new ArrayList<>() : tradings;
+        log.info("check new instrument {} / {}", aInstruments.size(), tradings.size());
+        for (InstrumentEntity instrument : aInstruments) {
+            // 是否在数据库内
+            boolean isFound = false;
+            for (InstrumentEntity trading: tradings) {
+                if (!instrument.getInstrumentID().equalsIgnoreCase(trading.getInstrumentID())) {
+                    continue;
+                }
+                isFound = true;
+                // 交易状态更新， 放到待更新组
+                if (instrument.getIsTrading() != trading.getIsTrading()) {
+                    instrument.setInstrumentID(trading.getInstrumentID());
+                    updates.add(instrument);
+                }
             }
 
-            // 从本地文件读取
-            instruments = dataService.readInstrumentsTradingDay(ctpInfo.getTradingDay());
-
-            if (instruments == null || instruments.isEmpty()) {
-                instruments = queryInstruments();
+            // 不在数据库内，放到带添加合约
+            if (!isFound) {
+                adds.add(instrument);
             }
-            if (instruments == null) {
-                instruments = new ArrayList<>();
-            }
-
-            // 保存到本地文件
-            dataService.saveInstrumentsTradingDay(instruments, ctpInfo.getTradingDay());
-
-            return instruments;
         }
 
-        // 从本地文件中读取
-        List<InstrumentEntity> local =  dataService.readInstrumentsTradingDay(tradingDay);
-        if (local == null) {
-            local = new ArrayList<>();
+        log.info("{}条新合约", adds.size());
+        if (adds.size() > 0 ) {
+            instrumentService.saveBatch(adds);
+            log.info("新合约保存成功");
         }
-        return local;
+
+        log.info("{}条合约状态更新", updates.size());
+        if (updates.size() > 0) {
+            instrumentService.updateBatchById(updates);
+            log.info("合约更新成功");
+        }
+
     }
 
     /**
-     * 查询交易日全市场合约
-     * @return 合约
+     * 获取所有交易中的合约
+     * @return Instruments
      */
-    private List<InstrumentEntity> queryInstruments() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        Ctp<List<InstrumentEntity>> ctp = new Ctp<>();
-        return ctp.request(requestId -> {
-            CThostFtdcQryInstrumentField field = new CThostFtdcQryInstrumentField();
-            return traderApi.ReqQryInstrument(field, requestId);
-        });
+    public List<InstrumentEntity> listTrading() {
+        return instrumentMapper.listTradings();
     }
 }

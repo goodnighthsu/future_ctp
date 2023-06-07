@@ -36,7 +36,7 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     public void OnFrontConnected() {
         marketService.setIsConnected(true);
         marketService.setIsLogin(false);
-        log.info("market front connected");
+        log.info("行情前置连接成功");
         new Thread(()-> {
             try {
                 marketService.login();
@@ -49,7 +49,7 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
 
     @Override
     public void OnFrontDisconnected(int reason) {
-        log.error("market front disconnected: {}", reason);
+        log.error("行情前置断开: {}", reason);
         marketService.setIsConnected(false);
         marketService.setIsLogin(false);
     }
