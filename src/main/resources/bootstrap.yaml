@@ -10,3 +10,5 @@ spring:
   application:
 #    name: ctp
     name: ctpslave
+  profiles:
+    active: dev

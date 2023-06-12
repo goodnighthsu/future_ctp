@@ -1,5 +1,6 @@
 package site.xleon.future.ctp.models;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -7,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
-@JsonIgnoreProperties(value = { "hibernateLazyInitializer", "handler"})
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TradingEntity {
     /**
      * 接受时间
@@ -198,8 +199,8 @@ public class TradingEntity {
         this.instrumentId = array[0];
         this.exchangeId = array[4];
         this.exchangeInstId = array[5];
-        this.lastPrice = BigDecimal.valueOf(Long.parseLong(array[6]));
-        this.volume = Long.parseLong(array[13]);
-        this.openInterest = Long.parseLong(array[15]);
+        this.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
+        this.volume = Double.valueOf(array[13]).longValue();
+        this.openInterest = Double.valueOf(array[15]).longValue();
     }
 }

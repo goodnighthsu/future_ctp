@@ -128,8 +128,12 @@ public class MarketService {
         // 订阅
         instruments = instruments.stream().distinct().collect(Collectors.toList());
         String[] ids= instruments.toArray(new String[instruments.size()]);
-//        int code = mdApi.SubscribeMarketData(ids, ids.length);
-//        log.info("行情订阅 {} 条, code: {}", ids.length, code);
+        if (appConfig.getSchedule().getSubscribe()) {
+            int code = mdApi.SubscribeMarketData(ids, ids.length);
+            log.info("行情订阅 {} 条, code: {}", ids.length, code);
+        } else {
+            log.info("行情订阅 {} 条, 订阅关闭", ids.length);
+        }
     }
 
     /**

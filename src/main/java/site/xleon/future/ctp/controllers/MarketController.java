@@ -186,5 +186,4 @@ public class MarketController {
         List<TradingEntity> tradings = dataService.readMarketFund(ctpInfo.getTradingDay());
         return Result.success(tradings);
     }
-
 }
