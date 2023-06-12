@@ -13,6 +13,7 @@ import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.utils.Utils;
 import site.xleon.future.ctp.models.InstrumentEntity;
+import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.mapper.InstrumentMapper;
@@ -22,6 +23,7 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -162,4 +164,27 @@ public class MarketController {
 
         return Result.page(instruments);
     }
+
+    /**
+     * 返回所有合约
+     */
+    @GetMapping("/instruments/all")
+    public Result<List<String>> allInstruments() {
+        QueryWrapper<InstrumentEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("*").orderByDesc("id");
+        List<InstrumentEntity> list = instrumentMapper.selectList(queryWrapper);
+        return Result.success(
+                list.stream().map(InstrumentEntity::getInstrumentID).collect(Collectors.toList())
+        );
+    }
+
+    /**
+     * 返回市场资金
+     */
+    @GetMapping("/funds")
+    public Result<List<TradingEntity>> funds() {
+        List<TradingEntity> tradings = dataService.readMarketFund(ctpInfo.getTradingDay());
+        return Result.success(tradings);
+    }
+
 }

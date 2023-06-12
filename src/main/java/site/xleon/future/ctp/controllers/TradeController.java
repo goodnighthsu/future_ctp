@@ -1,7 +1,7 @@
 package site.xleon.future.ctp.controllers;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
+//import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.core.MyException;
@@ -38,14 +38,12 @@ public class TradeController {
         return Result.success(userId);
     }
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @GetMapping("/redis")
-    public Result<String> redis() {
-        redisTemplate.opsForValue().set("redis", "test_redis");
-        return Result.success(redisTemplate.opsForValue().get("redis"));
-    }
-
-
+//    @Autowired
+//    private StringRedisTemplate redisTemplate;
+//
+//    @GetMapping("/redis")
+//    public Result<String> redis() {
+//        redisTemplate.opsForValue().set("redis", "test_redis");
+//        return Result.success(redisTemplate.opsForValue().get("redis"));
+//    }
 }

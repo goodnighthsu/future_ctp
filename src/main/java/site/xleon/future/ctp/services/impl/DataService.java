@@ -4,18 +4,21 @@ import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.LineIterator;
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.utils.CompressUtils;
+import site.xleon.future.ctp.models.InstrumentEntity;
+import site.xleon.future.ctp.models.TradingEntity;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -78,6 +81,41 @@ public class DataService {
         }
 
         return new ArrayList<>();
+    }
+
+    /**
+     * 读取市场合约资金
+     * @param tradingDay 交易日
+     * @return tradings
+     */
+    public List<TradingEntity> readMarketFund(String tradingDay) {
+        List<TradingEntity> list = new ArrayList<>();
+        try {
+            Path path = Paths.get(DIR, tradingDay);
+            File[] files = path.toFile().listFiles();
+            if (files == null) {
+                return list;
+            }
+
+            for (File file :
+                    files) {
+
+                // 获取最后一行
+                try (ReversedLinesFileReader reader = new ReversedLinesFileReader(file, Charset.defaultCharset())){
+                    String line = reader.readLine();
+                    if (line != null) {
+                        TradingEntity trading = new TradingEntity(line);
+                        list.add(trading);
+                    }
+                }catch (Exception e) {
+                    log.error("read market fund error", e);
+                }
+            }
+        }catch (Exception e) {
+            log.error("read market fund error", e);
+        }
+
+        return list;
     }
 
     public void compress() {

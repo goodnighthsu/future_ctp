@@ -2,8 +2,7 @@ spring:
   cloud:
     nacos:
       config:
-        server-add: home.xleon.site:8848
-#        server-addr: xleon.site:8848
+        server-addr: leonx.site:8848
         file-extension: yml
 #       future
         namespace: 24120332-082f-41c1-a66f-bda4905a9811

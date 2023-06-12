@@ -187,4 +187,19 @@ public class TradingEntity {
     private Integer bidVolume5;
     private BigDecimal askPrice5;
     private Integer askVolume5;
+
+    /**
+     * 构造
+     * @param line 行
+     */
+    public TradingEntity(String line) {
+        String[] array = line.split(",");
+
+        this.instrumentId = array[0];
+        this.exchangeId = array[4];
+        this.exchangeInstId = array[5];
+        this.lastPrice = BigDecimal.valueOf(Long.parseLong(array[6]));
+        this.volume = Long.parseLong(array[13]);
+        this.openInterest = Long.parseLong(array[15]);
+    }
 }
