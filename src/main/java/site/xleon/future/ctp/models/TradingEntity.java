@@ -1,9 +1,9 @@
 package site.xleon.future.ctp.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -17,7 +17,7 @@ public class TradingEntity {
 
     /**
      * 交易发生时间
-     * tradingDay + updateTime + updateMillisec
+     * tradingDay + updateTime + update-Millisec
      */
     private Date tradingActionTime;
 
@@ -190,6 +190,25 @@ public class TradingEntity {
     private Integer askVolume5;
 
     /**
+     * 交易时段
+     */
+    private static final String[] schedule1 = {"21:00", "23:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
+    private static final String[] schedule2 = {"9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
+    private static final String[] schedule3 = {"21:00", "01:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
+    private static final String[] schedule4 = {"21:00", "02:30", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
+    private static final String[] schedule5 = {"9:30", "11:30", "13:00", "15:00"};
+    private static final String[] schedule6 = {"9:15", "11:30", "13:00", "15:15"};
+    private static final String[] schedule7 = {"9:30", "11:30", "13:00", "15:00"};
+
+    private static final TimeConfig timeConfig1 = new TimeConfig(schedule1,
+            new String[]{"FG", "SA", "MA", "SR", "TA", "RM", "OI", "CF", "CY", "PF", "ZC", // 郑商所
+                    "i", "j", "jm", "a", "b", "m", "p", "y", "c", "cs", "pp", "v", "eb", "eg", "pg", "rr", "l", // 大连交易所
+                    "fu", "ru", "bu", "sp", "rb", "hc", // 上期所
+                    "lu", "nr", // 能源
+            }
+    );
+
+    /**
      * 构造
      * @param line 行
      */
@@ -203,4 +222,14 @@ public class TradingEntity {
         this.volume = Double.valueOf(array[13]).longValue();
         this.openInterest = Double.valueOf(array[15]).longValue();
     }
+}
+
+/**
+ * 交易时间配置
+ */
+@AllArgsConstructor
+@Data
+class TimeConfig {
+    private String[] schedule;
+    private String[] products;
 }
