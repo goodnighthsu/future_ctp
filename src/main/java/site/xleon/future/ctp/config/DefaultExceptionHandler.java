@@ -48,13 +48,13 @@ public class DefaultExceptionHandler extends BasicErrorController {
         return new ResponseEntity<>(map, getStatus(request));
     }
 
-    @ResponseBody
-    @ExceptionHandler
-    public Result<String> defaultException(HttpServletRequest request, Exception exception) {
-        if (exception instanceof UndeclaredThrowableException) {
-            Throwable e  = ((UndeclaredThrowableException) exception).getUndeclaredThrowable();
-            return Result.fail(e.getMessage());
-        }
-        return Result.fail(exception.getMessage());
-    }
+//    @ResponseBody
+//    @ExceptionHandler
+//    public Result<String> defaultException(HttpServletRequest request, Exception exception) {
+//        if (exception instanceof UndeclaredThrowableException) {
+//            Throwable e  = ((UndeclaredThrowableException) exception).getUndeclaredThrowable();
+//            return Result.fail(e.getMessage());
+//        }
+//        return Result.fail(exception.getMessage());
+//    }
 }

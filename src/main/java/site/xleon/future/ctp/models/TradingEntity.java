@@ -3,10 +3,17 @@ package site.xleon.future.ctp.models;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+@NoArgsConstructor
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TradingEntity {
@@ -192,44 +199,146 @@ public class TradingEntity {
     /**
      * 交易时段
      */
-    private static final String[] schedule1 = {"21:00", "23:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
-    private static final String[] schedule2 = {"9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
-    private static final String[] schedule3 = {"21:00", "01:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
-    private static final String[] schedule4 = {"21:00", "02:30", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"};
-    private static final String[] schedule5 = {"9:30", "11:30", "13:00", "15:00"};
-    private static final String[] schedule6 = {"9:15", "11:30", "13:00", "15:15"};
-    private static final String[] schedule7 = {"9:30", "11:30", "13:00", "15:00"};
+    private static final List<String> Schedule1 = new ArrayList<>(Arrays.asList("21:00", "23:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"));
+    private static final List<String> Schedule2 = new ArrayList<>(Arrays.asList("9:00", "10:15", "10:30", "11:30", "13:30", "15:00"));
+    private static final List<String> Schedule3 = new ArrayList<>(Arrays.asList("21:00", "01:00", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"));
+    private static final List<String> Schedule4 = new ArrayList<>(Arrays.asList("21:00", "02:30", "9:00", "10:15", "10:30", "11:30", "13:30", "15:00"));
+    private static final List<String> Schedule5 = new ArrayList<>(Arrays.asList("9:30", "11:30", "13:00", "15:00"));
+    private static final List<String> Schedule6 = new ArrayList<>(Arrays.asList("9:15", "11:30", "13:00", "15:15"));
+    private static final List<String> Schedule7 = new ArrayList<>(Arrays.asList("9:30", "11:30", "13:00", "15:00"));
 
-    private static final TimeConfig timeConfig1 = new TimeConfig(schedule1,
-            new String[]{"FG", "SA", "MA", "SR", "TA", "RM", "OI", "CF", "CY", "PF", "ZC", // 郑商所
-                    "i", "j", "jm", "a", "b", "m", "p", "y", "c", "cs", "pp", "v", "eb", "eg", "pg", "rr", "l", // 大连交易所
-                    "fu", "ru", "bu", "sp", "rb", "hc", // 上期所
-                    "lu", "nr", // 能源
-            }
+    private static final TimeConfig TimeConfig1 = new TimeConfig(Schedule1,
+        new ArrayList<>(Arrays.asList(
+                "FG", "SA", "MA", "SR", "TA", "RM", "OI", "CF", "CY", "PF", "ZC", // 郑商所
+                "i", "j", "jm", "a", "b", "m", "p", "y", "c", "cs", "pp", "v", "eb", "eg", "pg", "rr", "l", // 大连交易所
+                "fu", "ru", "bu", "sp", "rb", "hc", // 上期所
+                "lu", "nr" // 能源
+        ))
+    );
+
+    private static final TimeConfig TimeConfig2 = new TimeConfig(Schedule2,
+        new ArrayList<>(Arrays.asList(
+                    "SM", "SF", "WH", "JR", "LR", "PM", "RI", "RS", "PK", "UR", "CJ", "AP", // 郑商所
+                    "bb", "fb", "lh", "jd", // 大连交易所
+                    "wr" // 上期所
+        ))
+    );
+
+    private static final TimeConfig TimeConfig3 = new TimeConfig(Schedule3,
+        new ArrayList<>(Arrays.asList(
+                "cu", "pb", "al", "zn", "sn", "ni", "ss", // 上期所
+                "bc" // 能源
+        ))
+    );
+
+    private static final TimeConfig TimeConfig4 = new TimeConfig(Schedule4,
+        new ArrayList<>(Arrays.asList(
+                "au", "ag", // 上期所
+                "sc" // 能源
+        ))
+    );
+
+    private static final TimeConfig TimeConfig5 = new TimeConfig(Schedule5,
+        new ArrayList<>(Arrays.asList(
+                "IF", "IC", "IH" // 中金
+        ))
+    );
+
+    private static final TimeConfig TimeConfig6 = new TimeConfig(Schedule6,
+        new ArrayList<>(Arrays.asList(
+                    "T", "TF", "TS" // 中金
+        ))
+    );
+
+    private static final List<TimeConfig> TIME_CONFIG = new ArrayList<>(
+            Arrays.asList(TimeConfig1, TimeConfig2, TimeConfig3, TimeConfig4, TimeConfig5, TimeConfig6)
     );
 
     /**
      * 构造
      * @param line 行
      */
-    public TradingEntity(String line) {
+    public static TradingEntity createByString(String line) throws ParseException {
         String[] array = line.split(",");
+        TradingEntity trading = new TradingEntity();
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
+        trading.tradingActionTime = df.parse(array[1] + " " + array[2] + "." + array[3]);
+        trading.instrumentId = array[0];
+        trading.exchangeId = array[4];
+        trading.exchangeInstId = array[5];
+        trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
+        trading.volume = Double.valueOf(array[13]).longValue();
+        trading.openInterest = Double.valueOf(array[15]).longValue();
 
-        this.instrumentId = array[0];
-        this.exchangeId = array[4];
-        this.exchangeInstId = array[5];
-        this.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
-        this.volume = Double.valueOf(array[13]).longValue();
-        this.openInterest = Double.valueOf(array[15]).longValue();
+        return trading;
+    }
+
+    public static TradingEntity createByInstrument(String instrument) {
+        TradingEntity trading = new TradingEntity();
+        trading.setInstrumentId(instrument);
+        return trading;
+    }
+
+    /**
+     * 按合约获取交易时间段
+     */
+    public List<String> getSchedule() {
+        if (this.instrumentId == null) {
+            return new ArrayList<>();
+        }
+
+        if (this.instrumentId.length() > 6) {
+            return Schedule6;
+        }
+
+        Pattern pattern = Pattern.compile("^\\w{1,2}");
+        Matcher matcher = pattern.matcher(this.instrumentId);
+        if (!matcher.find()) {
+            return new ArrayList<>();
+        }
+
+        String code = matcher.group(0);
+        Optional<TimeConfig> finded = TIME_CONFIG.stream()
+                .filter(timeConfig -> timeConfig.getProducts().contains(code))
+                .findFirst();
+        TimeConfig config =  finded.orElseGet(TimeConfig::new);
+        return config.getSchedules();
+    }
+
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+    private static final SimpleDateFormat fullDateFormat = new SimpleDateFormat("HH:mm:ss");
+    @SneakyThrows
+    public List<String> getTimeLinesByInterval(Integer interval) {
+        List<String> times = new ArrayList<>();
+        List<String> schedules = this.getSchedule();
+        for (int i = 0; i < schedules.size(); i = i + 2) {
+            String openTimeString = schedules.get(i);
+            long openTime = dateFormat.parse(openTimeString).getTime();
+            String closeTimeString = schedules.get(i+1);
+            long closeTime = dateFormat.parse(closeTimeString).getTime();
+            if (closeTime < openTime) {
+                closeTime += 60*60*24*1000;
+            }
+            long time = openTime;
+            while (time != closeTime) {
+                Date date = new Date(time);
+                times.add(fullDateFormat.format(date));
+                time += interval * 1000;
+            }
+
+            times.add(fullDateFormat.format(new Date(time)));
+        }
+        return times;
     }
 }
 
 /**
  * 交易时间配置
  */
+@NoArgsConstructor
 @AllArgsConstructor
 @Data
 class TimeConfig {
-    private String[] schedule;
-    private String[] products;
+    private List<String> schedules = new ArrayList<>();
+    private List<String> products = new ArrayList<>();
 }

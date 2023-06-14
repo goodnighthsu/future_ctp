@@ -4,14 +4,11 @@ import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.utils.CompressUtils;
-import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.models.TradingEntity;
 
 import java.io.File;
@@ -104,7 +101,7 @@ public class DataService {
                 try (ReversedLinesFileReader reader = new ReversedLinesFileReader(file, Charset.defaultCharset())){
                     String line = reader.readLine();
                     if (line != null) {
-                        TradingEntity trading = new TradingEntity(line);
+                        TradingEntity trading = TradingEntity.createByString(line);
                         list.add(trading);
                     }
                 }catch (Exception e) {

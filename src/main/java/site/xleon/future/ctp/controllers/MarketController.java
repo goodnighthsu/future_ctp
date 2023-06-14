@@ -21,7 +21,12 @@ import site.xleon.future.ctp.services.mapper.InstrumentMapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -185,5 +190,72 @@ public class MarketController {
     public Result<List<TradingEntity>> funds() {
         List<TradingEntity> tradings = dataService.readMarketFund(ctpInfo.getTradingDay());
         return Result.success(tradings);
+    }
+
+    @GetMapping("/instrument/schedule")
+    public Result<List<String>> schedule(String instrument, Integer interval) {
+        TradingEntity trading = TradingEntity.createByInstrument(instrument);
+        String tradingDay = ctpInfo.getTradingDay();
+        List<String> quotes = dataService.readMarket(tradingDay, instrument, 0);
+
+
+        return Result.success(trading.getSchedule());
+    }
+
+    @GetMapping("/instrument/period")
+    public Result<List<TradingEntity>> listPeriodByInterval(
+            @RequestParam String instrument,
+            @RequestParam String tradingDay,
+            @RequestParam Integer interval) {
+        List<String> quotes = dataService.readMarket(tradingDay, instrument, 0);
+        TradingEntity trading = TradingEntity.createByInstrument(instrument);
+        List<String> timeLines = trading.getTimeLinesByInterval(interval);
+
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        // k线信息 时间， 开盘， 最高，收盘，最低
+        List<TradingEntity> periods = new ArrayList<>();
+
+        TradingEntity lastTrading = new TradingEntity();
+        lastTrading.setOpenPrice(BigDecimal.ZERO);
+        lastTrading.setClosePrice(BigDecimal.ZERO);
+        lastTrading.setHighestPrice(BigDecimal.ZERO);
+        lastTrading.setLowestPrice(BigDecimal.ZERO);
+        int last = 0;
+        for(String time: timeLines) {
+            String openTimeString = tradingDay + ' ' + time;
+            try {
+                long openTime = df.parse(openTimeString).getTime();
+                long closeTime = openTime + interval * 1000;
+                TradingEntity item = new TradingEntity();
+                item.setTradingActionTime(new Date(openTime));
+                item.setOpenPrice(lastTrading.getOpenPrice());
+                item.setClosePrice(lastTrading.getClosePrice());
+                item.setHighestPrice(lastTrading.getHighestPrice());
+                item.setLowestPrice(lastTrading.getLowestPrice());
+                for (int i = last; i < quotes.size(); i++) {
+                    TradingEntity quote = TradingEntity.createByString(quotes.get(i));
+                    long actionTime = quote.getTradingActionTime().getTime();
+                    if (actionTime < openTime || actionTime > closeTime) {
+                        last = i;
+                        break;
+                    }
+
+                    if (quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
+                        item.setHighestPrice(quote.getLastPrice());
+                    }
+
+                    if (quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
+                        item.setLowestPrice(quote.getLastPrice());
+                    }
+                }
+
+                periods.add(item);
+                lastTrading = item;
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return Result.success(periods);
     }
 }
