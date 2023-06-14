@@ -29,6 +29,12 @@ public class TradingEntity {
     private Date tradingActionTime;
 
     /**
+     * 发生时间
+     * updateTime + update-Millisec
+     */
+    private Date actionTime;
+
+    /**
      * 合约代码
      */
     private String instrumentId;
@@ -261,8 +267,8 @@ public class TradingEntity {
     public static TradingEntity createByString(String line) throws ParseException {
         String[] array = line.split(",");
         TradingEntity trading = new TradingEntity();
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
-        trading.tradingActionTime = df.parse(array[1] + " " + array[2] + "." + array[3]);
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss.SSS");
+        trading.actionTime = df.parse(array[2] + "." + array[3]);
         trading.instrumentId = array[0];
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];

@@ -211,7 +211,7 @@ public class MarketController {
         TradingEntity trading = TradingEntity.createByInstrument(instrument);
         List<String> timeLines = trading.getTimeLinesByInterval(interval);
 
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
         // k线信息 时间， 开盘， 最高，收盘，最低
         List<TradingEntity> periods = new ArrayList<>();
 
@@ -219,12 +219,13 @@ public class MarketController {
         lastTrading.setOpenPrice(BigDecimal.ZERO);
         lastTrading.setClosePrice(BigDecimal.ZERO);
         lastTrading.setHighestPrice(BigDecimal.ZERO);
-        lastTrading.setLowestPrice(BigDecimal.ZERO);
+        lastTrading.setLowestPrice(BigDecimal.valueOf(Double.MAX_VALUE));
+        lastTrading.setVolume(0L);
         int last = 0;
-        for(String time: timeLines) {
-            String openTimeString = tradingDay + ' ' + time;
+        for(int n=0; n < timeLines.size(); n++) {
             try {
-                long openTime = df.parse(openTimeString).getTime();
+                String time = timeLines.get(n);
+                long openTime = df.parse(time).getTime();
                 long closeTime = openTime + interval * 1000;
                 TradingEntity item = new TradingEntity();
                 item.setTradingActionTime(new Date(openTime));
@@ -232,20 +233,23 @@ public class MarketController {
                 item.setClosePrice(lastTrading.getClosePrice());
                 item.setHighestPrice(lastTrading.getHighestPrice());
                 item.setLowestPrice(lastTrading.getLowestPrice());
+                item.setVolume(lastTrading.getVolume());
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
-                    long actionTime = quote.getTradingActionTime().getTime();
-                    if (actionTime < openTime || actionTime > closeTime) {
-                        last = i;
+                    long actionTime = quote.getActionTime().getTime();
+                    if (actionTime >= openTime && actionTime <= closeTime) {
+
+                        if (quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
+                            item.setHighestPrice(quote.getLastPrice());
+                        }
+
+                        if (quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
+                            item.setLowestPrice(quote.getLastPrice());
+                        }
+
+                        item.setVolume(quote.getVolume() - lastTrading.getVolume());
+                        last = i+1;
                         break;
-                    }
-
-                    if (quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
-                        item.setHighestPrice(quote.getLastPrice());
-                    }
-
-                    if (quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
-                        item.setLowestPrice(quote.getLastPrice());
                     }
                 }
 
