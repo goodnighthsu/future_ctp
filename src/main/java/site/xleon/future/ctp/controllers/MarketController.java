@@ -212,6 +212,9 @@ public class MarketController {
         List<String> timeLines = trading.getTimeLinesByInterval(interval);
 
         SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
+        SimpleDateFormat df1 = new SimpleDateFormat("HH:mm:ss.SSS");
+        SimpleDateFormat df2 = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+
         // k线信息 时间， 开盘， 最高，收盘，最低
         List<TradingEntity> periods = new ArrayList<>();
 
@@ -228,17 +231,17 @@ public class MarketController {
                 long openTime = df.parse(time).getTime();
                 long closeTime = openTime + interval * 1000;
                 TradingEntity item = new TradingEntity();
-                item.setTradingActionTime(new Date(openTime));
-                item.setOpenPrice(lastTrading.getOpenPrice());
-                item.setClosePrice(lastTrading.getClosePrice());
+                item.setOpenPrice(lastTrading.getClosePrice());
+//                item.setClosePrice(lastTrading.getClosePrice());
                 item.setHighestPrice(lastTrading.getHighestPrice());
                 item.setLowestPrice(lastTrading.getLowestPrice());
                 item.setVolume(lastTrading.getVolume());
+
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
-                    long actionTime = quote.getActionTime().getTime();
-                    if (actionTime >= openTime && actionTime <= closeTime) {
-
+                    long actionTime = df1.parse(quote.getActionTime()).getTime();
+                    if (actionTime >= openTime && actionTime < closeTime) {
+                        item.setTradingActionTime(df2.parse(quote.getActionDay() + " " + time));
                         if (quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
                             item.setHighestPrice(quote.getLastPrice());
                         }
@@ -247,8 +250,13 @@ public class MarketController {
                             item.setLowestPrice(quote.getLastPrice());
                         }
 
-                        item.setVolume(quote.getVolume() - lastTrading.getVolume());
-                        last = i+1;
+                        item.setVolume(quote.getVolume());
+                        item.setTickVolume(quote.getVolume() - lastTrading.getVolume());
+                        item.setClosePrice(quote.getLastPrice());
+                    }
+
+                    if (actionTime >= closeTime) {
+                        last = i;
                         break;
                     }
                 }

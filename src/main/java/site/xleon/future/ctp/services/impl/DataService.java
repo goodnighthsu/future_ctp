@@ -96,7 +96,6 @@ public class DataService {
 
             for (File file :
                     files) {
-
                 // 获取最后一行
                 try (ReversedLinesFileReader reader = new ReversedLinesFileReader(file, Charset.defaultCharset())){
                     String line = reader.readLine();

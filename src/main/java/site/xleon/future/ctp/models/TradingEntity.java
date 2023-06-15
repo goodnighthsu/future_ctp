@@ -32,7 +32,7 @@ public class TradingEntity {
      * 发生时间
      * updateTime + update-Millisec
      */
-    private Date actionTime;
+    private String actionTime;
 
     /**
      * 合约代码
@@ -112,6 +112,7 @@ public class TradingEntity {
      * 成交量
      */
     private Long volume;
+    private Long tickVolume;
 
     /**
      * 成交额
@@ -267,8 +268,10 @@ public class TradingEntity {
     public static TradingEntity createByString(String line) throws ParseException {
         String[] array = line.split(",");
         TradingEntity trading = new TradingEntity();
-        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss.SSS");
-        trading.actionTime = df.parse(array[2] + "." + array[3]);
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
+        trading.actionDay = array[43].split(" ")[0];
+        trading.actionTime = array[2] + "." + array[3];
+        trading.tradingActionTime = df.parse(array[1] + " " + trading.actionTime);
         trading.instrumentId = array[0];
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];
@@ -326,13 +329,13 @@ public class TradingEntity {
                 closeTime += 60*60*24*1000;
             }
             long time = openTime;
-            while (time != closeTime) {
+            while (time < closeTime) {
                 Date date = new Date(time);
                 times.add(fullDateFormat.format(date));
                 time += interval * 1000;
             }
 
-            times.add(fullDateFormat.format(new Date(time)));
+            times.add(fullDateFormat.format(new Date(closeTime)));
         }
         return times;
     }
