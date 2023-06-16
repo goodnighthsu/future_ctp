@@ -278,6 +278,9 @@ public class TradingEntity {
         trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
         trading.volume = Double.valueOf(array[13]).longValue();
         trading.openInterest = Double.valueOf(array[15]).longValue();
+        if (array[11].length() > 0) {
+            trading.openPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
+        }
 
         return trading;
     }

@@ -219,44 +219,62 @@ public class MarketController {
         List<TradingEntity> periods = new ArrayList<>();
 
         TradingEntity lastTrading = new TradingEntity();
-        lastTrading.setOpenPrice(BigDecimal.ZERO);
-        lastTrading.setClosePrice(BigDecimal.ZERO);
-        lastTrading.setHighestPrice(BigDecimal.ZERO);
-        lastTrading.setLowestPrice(BigDecimal.valueOf(Double.MAX_VALUE));
+//        lastTrading.setOpenPrice();
+//        lastTrading.setClosePrice(BigDecimal.ZERO);
+//        lastTrading.setHighestPrice(BigDecimal.ZERO);
+//        lastTrading.setLowestPrice(BigDecimal.valueOf(Double.MAX_VALUE));
         lastTrading.setVolume(0L);
         int last = 0;
-        for(int n=0; n < timeLines.size(); n++) {
+        for(int n = 0; n < timeLines.size(); n++) {
             try {
                 String time = timeLines.get(n);
                 long openTime = df.parse(time).getTime();
                 long closeTime = openTime + interval * 1000;
                 TradingEntity item = new TradingEntity();
-                item.setOpenPrice(lastTrading.getClosePrice());
+//                item.setOpenPrice(lastTrading.getClosePrice());
 //                item.setClosePrice(lastTrading.getClosePrice());
-                item.setHighestPrice(lastTrading.getHighestPrice());
-                item.setLowestPrice(lastTrading.getLowestPrice());
+//                item.setHighestPrice(lastTrading.getClosePrice());
+//                item.setLowestPrice(lastTrading.getClosePrice());
                 item.setVolume(lastTrading.getVolume());
 
+                boolean isFirst = true;
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
+                    // 跳过脏数据
+                    if (quote.getOpenPrice().compareTo(BigDecimal.ZERO) == 0 ) {
+                        continue;
+                    }
                     long actionTime = df1.parse(quote.getActionTime()).getTime();
                     if (actionTime >= openTime && actionTime < closeTime) {
+                        if (isFirst) {
+                            item.setOpenPrice(quote.getLastPrice());
+                            item.setClosePrice(quote.getLastPrice());
+                            item.setHighestPrice(quote.getLastPrice());
+                            item.setLowestPrice(quote.getLastPrice());
+                            item.setVolume(quote.getVolume());
+                            lastTrading.setClosePrice(quote.getLastPrice());
+                            isFirst = false;
+                        }
                         item.setTradingActionTime(df2.parse(quote.getActionDay() + " " + time));
-                        if (quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
+                        if (item.getHighestPrice() == null || quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
                             item.setHighestPrice(quote.getLastPrice());
                         }
 
-                        if (quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
+                        if (item.getLowestPrice() == null || quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
                             item.setLowestPrice(quote.getLastPrice());
                         }
 
                         item.setVolume(quote.getVolume());
                         item.setTickVolume(quote.getVolume() - lastTrading.getVolume());
-                        item.setClosePrice(quote.getLastPrice());
+
+//                        item.setClosePrice(lastTrading.getLastPrice());
                     }
 
                     if (actionTime >= closeTime) {
                         last = i;
+                        if (item.getOpenPrice() == null) {
+//                            item.setOpenPrice(quote.getOpenPrice());
+                        }
                         break;
                     }
                 }
