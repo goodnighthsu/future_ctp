@@ -34,6 +34,15 @@ public class TradingEntity {
      */
     private String actionTime;
 
+    public Optional<Date> getActionTimeDate() throws ParseException {
+        if (actionTime == null) {
+            return Optional.empty();
+        }
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss.SSS");
+        return Optional.of(df.parse(actionTime));
+    }
+
+
     /**
      * 合约代码
      */

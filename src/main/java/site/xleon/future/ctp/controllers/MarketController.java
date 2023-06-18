@@ -212,75 +212,83 @@ public class MarketController {
         List<String> timeLines = trading.getTimeLinesByInterval(interval);
 
         SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
-        SimpleDateFormat df1 = new SimpleDateFormat("HH:mm:ss.SSS");
-        SimpleDateFormat df2 = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        SimpleDateFormat dfFull = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
         // k线信息 时间， 开盘， 最高，收盘，最低
         List<TradingEntity> periods = new ArrayList<>();
 
         TradingEntity lastTrading = new TradingEntity();
-//        lastTrading.setOpenPrice();
-//        lastTrading.setClosePrice(BigDecimal.ZERO);
-//        lastTrading.setHighestPrice(BigDecimal.ZERO);
-//        lastTrading.setLowestPrice(BigDecimal.valueOf(Double.MAX_VALUE));
         lastTrading.setVolume(0L);
+
         int last = 0;
         for(int n = 0; n < timeLines.size(); n++) {
             try {
                 String time = timeLines.get(n);
                 long openTime = df.parse(time).getTime();
                 long closeTime = openTime + interval * 1000;
-                TradingEntity item = new TradingEntity();
-//                item.setOpenPrice(lastTrading.getClosePrice());
-//                item.setClosePrice(lastTrading.getClosePrice());
-//                item.setHighestPrice(lastTrading.getClosePrice());
-//                item.setLowestPrice(lastTrading.getClosePrice());
-                item.setVolume(lastTrading.getVolume());
+                // k线信息 时间 开盘价格 收盘价 最高 最低 手数 使劲按
+                TradingEntity kLine = new TradingEntity();
 
-                boolean isFirst = true;
+                // 开盘
+                boolean isOpen = true;
+                // 时间段端内数据
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
-                    // 跳过脏数据
+                    // 跳过脏数据，没有开盘价格
                     if (quote.getOpenPrice().compareTo(BigDecimal.ZERO) == 0 ) {
                         continue;
                     }
-                    long actionTime = df1.parse(quote.getActionTime()).getTime();
-                    if (actionTime >= openTime && actionTime < closeTime) {
-                        if (isFirst) {
-                            item.setOpenPrice(quote.getLastPrice());
-                            item.setClosePrice(quote.getLastPrice());
-                            item.setHighestPrice(quote.getLastPrice());
-                            item.setLowestPrice(quote.getLastPrice());
-                            item.setVolume(quote.getVolume());
-                            lastTrading.setClosePrice(quote.getLastPrice());
-                            isFirst = false;
-                        }
-                        item.setTradingActionTime(df2.parse(quote.getActionDay() + " " + time));
-                        if (item.getHighestPrice() == null || quote.getLastPrice().doubleValue() > item.getHighestPrice().doubleValue()) {
-                            item.setHighestPrice(quote.getLastPrice());
-                        }
-
-                        if (item.getLowestPrice() == null || quote.getLastPrice().doubleValue() < item.getLowestPrice().doubleValue()) {
-                            item.setLowestPrice(quote.getLastPrice());
-                        }
-
-                        item.setVolume(quote.getVolume());
-                        item.setTickVolume(quote.getVolume() - lastTrading.getVolume());
-
-//                        item.setClosePrice(lastTrading.getLastPrice());
+                    if (!quote.getActionTimeDate().isPresent()) {
+                        continue;
+                    }
+                    // 超过收盘时间，跳出
+                    long actionTime = quote.getActionTimeDate().get().getTime();
+                    if (actionTime > closeTime) {
+                        last = i;
+                        break;
                     }
 
-                    if (actionTime >= closeTime) {
-                        last = i;
-                        if (item.getOpenPrice() == null) {
-//                            item.setOpenPrice(quote.getOpenPrice());
+                    // 交易时间 实际发生日 + 时间
+                    kLine.setTradingActionTime(dfFull.parse(quote.getActionDay() + " " + time));
+                    if (actionTime >= openTime) {
+                        // 第一个有效数据价格作为开盘价， 并且设置上个K线的收盘价
+                        if (isOpen) {
+                            if (lastTrading.getLastPrice() != null) {
+                                kLine.setOpenPrice(lastTrading.getLastPrice());
+                            } else {
+                                kLine.setOpenPrice(quote.getLastPrice());
+                            }
+
+                            kLine.setHighestPrice(quote.getLastPrice());
+                            kLine.setLowestPrice(quote.getLastPrice());
+                            lastTrading.setVolume(quote.getVolume());
+                            lastTrading.setClosePrice(kLine.getOpenPrice());
+                            isOpen = false;
                         }
-                        break;
+                        kLine.setLastPrice(quote.getLastPrice());
+                        kLine.setClosePrice(quote.getLastPrice());
+                        // 交易量
+                        kLine.setVolume(quote.getVolume());
+                        kLine.setTickVolume(quote.getVolume() - lastTrading.getVolume());
+
+                        if (quote.getLastPrice().doubleValue() > kLine.getHighestPrice().doubleValue()) {
+                            kLine.setHighestPrice(quote.getLastPrice());
+                        }
+
+                        if (kLine.getLowestPrice() == null || quote.getLastPrice().doubleValue() < kLine.getLowestPrice().doubleValue()) {
+                            kLine.setLowestPrice(quote.getLastPrice());
+                        }
                     }
                 }
 
-                periods.add(item);
-                lastTrading = item;
+                if (kLine.getVolume() == null) {
+                    kLine.setVolume(0L);
+                }
+                if (kLine.getOpenPrice() == null) {
+                    continue;
+                }
+                periods.add(kLine);
+                lastTrading = kLine;
             } catch (ParseException e) {
                 e.printStackTrace();
             }
