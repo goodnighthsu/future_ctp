@@ -26,7 +26,6 @@ import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -221,10 +220,9 @@ public class MarketController {
         lastTrading.setVolume(0L);
 
         int last = 0;
-        for(int n = 0; n < timeLines.size(); n++) {
+        for (String timeLine : timeLines) {
             try {
-                String time = timeLines.get(n);
-                long openTime = df.parse(time).getTime();
+                long openTime = df.parse(timeLine).getTime();
                 long closeTime = openTime + interval * 1000;
                 // k线信息 时间 开盘价格 收盘价 最高 最低 手数 使劲按
                 TradingEntity kLine = new TradingEntity();
@@ -235,7 +233,7 @@ public class MarketController {
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
                     // 跳过脏数据，没有开盘价格
-                    if (quote.getOpenPrice().compareTo(BigDecimal.ZERO) == 0 ) {
+                    if (quote.getOpenPrice().compareTo(BigDecimal.ZERO) == 0) {
                         continue;
                     }
                     if (!quote.getActionTimeDate().isPresent()) {
@@ -243,26 +241,29 @@ public class MarketController {
                     }
                     // 超过收盘时间，跳出
                     long actionTime = quote.getActionTimeDate().get().getTime();
-                    if (actionTime > closeTime) {
-                        last = i;
+                    if (actionTime >= closeTime) {
+                        last = i - 1;
                         break;
                     }
 
                     // 交易时间 实际发生日 + 时间
-                    kLine.setTradingActionTime(dfFull.parse(quote.getActionDay() + " " + time));
+                    kLine.setTradingActionTime(dfFull.parse(quote.getActionDay() + " " + timeLine));
                     if (actionTime >= openTime) {
                         // 第一个有效数据价格作为开盘价， 并且设置上个K线的收盘价
                         if (isOpen) {
-                            if (lastTrading.getLastPrice() != null) {
-                                kLine.setOpenPrice(lastTrading.getLastPrice());
-                            } else {
-                                kLine.setOpenPrice(quote.getLastPrice());
-                            }
+//                            if (lastTrading.getLastPrice() != null) {
+//                                kLine.setOpenPrice(lastTrading.getLastPrice());
+//                            } else {
+//                                kLine.setOpenPrice(quote.getLastPrice());
+//                            }
+                            kLine.setOpenPrice(quote.getLastPrice());
+
 
                             kLine.setHighestPrice(quote.getLastPrice());
                             kLine.setLowestPrice(quote.getLastPrice());
-                            lastTrading.setVolume(quote.getVolume());
-                            lastTrading.setClosePrice(kLine.getOpenPrice());
+                            lastTrading.setClosePrice(quote.getLastPrice());
+                            // 持仓
+                            lastTrading.setOpenInterest(quote.getOpenInterest());
                             isOpen = false;
                         }
                         kLine.setLastPrice(quote.getLastPrice());

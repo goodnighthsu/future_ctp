@@ -285,11 +285,14 @@ public class TradingEntity {
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];
         trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
+        if (array[11].length() > 0) {
+            trading.openPrice = BigDecimal.valueOf(Double.parseDouble(array[10]));
+        }
+        trading.highestPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
+        trading.lowestPrice = BigDecimal.valueOf(Double.parseDouble(array[12]));
         trading.volume = Double.valueOf(array[13]).longValue();
         trading.openInterest = Double.valueOf(array[15]).longValue();
-        if (array[11].length() > 0) {
-            trading.openPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
-        }
+
 
         return trading;
     }
