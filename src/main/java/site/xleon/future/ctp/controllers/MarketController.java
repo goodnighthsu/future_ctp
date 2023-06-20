@@ -251,17 +251,14 @@ public class MarketController {
                     if (actionTime >= openTime) {
                         // 第一个有效数据价格作为开盘价， 并且设置上个K线的收盘价
                         if (isOpen) {
-//                            if (lastTrading.getLastPrice() != null) {
-//                                kLine.setOpenPrice(lastTrading.getLastPrice());
-//                            } else {
-//                                kLine.setOpenPrice(quote.getLastPrice());
-//                            }
                             kLine.setOpenPrice(quote.getLastPrice());
-
-
                             kLine.setHighestPrice(quote.getLastPrice());
                             kLine.setLowestPrice(quote.getLastPrice());
                             lastTrading.setClosePrice(quote.getLastPrice());
+
+                            // 交易量
+                            kLine.setVolume(quote.getVolume());
+                            lastTrading.setTickVolume(quote.getVolume()-lastTrading.getVolume());
                             // 持仓
                             lastTrading.setOpenInterest(quote.getOpenInterest());
                             isOpen = false;
@@ -269,8 +266,9 @@ public class MarketController {
                         kLine.setLastPrice(quote.getLastPrice());
                         kLine.setClosePrice(quote.getLastPrice());
                         // 交易量
-                        kLine.setVolume(quote.getVolume());
-                        kLine.setTickVolume(quote.getVolume() - lastTrading.getVolume());
+                        kLine.setTickVolume(quote.getVolume() - kLine.getVolume());
+                        // 持仓
+                        kLine.setOpenInterest(quote.getOpenInterest());
 
                         if (quote.getLastPrice().doubleValue() > kLine.getHighestPrice().doubleValue()) {
                             kLine.setHighestPrice(quote.getLastPrice());
