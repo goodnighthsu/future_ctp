@@ -331,8 +331,17 @@ public class TradingEntity {
 
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
     private static final SimpleDateFormat fullDateFormat = new SimpleDateFormat("HH:mm:ss");
+
+    /**
+     * 获取交易时间段
+     * @param interval 时间间隔
+     * @param isIncludeClose 返回时间按段是否包括收盘时间
+     * 包含 11:20 11:25 11:30 13:30 13:35
+     * 不包含 11:20 11:25 13:30 13:35
+     * @return 交易时间段
+     */
     @SneakyThrows
-    public List<String> getTimeLinesByInterval(Integer interval) {
+    public List<String> getTimeLinesByInterval(Integer interval, Boolean isIncludeClose) {
         List<String> times = new ArrayList<>();
         List<String> schedules = this.getSchedule();
         for (int i = 0; i < schedules.size(); i = i + 2) {
@@ -350,7 +359,9 @@ public class TradingEntity {
                 time += interval * 1000;
             }
 
-            times.add(fullDateFormat.format(new Date(closeTime)));
+            if (isIncludeClose) {
+                times.add(fullDateFormat.format(new Date(closeTime)));
+            }
         }
         return times;
     }

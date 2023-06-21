@@ -19,6 +19,7 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service("dataService")
 @Slf4j
@@ -138,6 +139,30 @@ public class DataService {
             }
         });
     }
+
+    /**
+     * 返回市场文件夹
+     */
+    public List<File> listMarkets() {
+        Path path = Paths.get(DIR);
+        File[] sub  = path.toFile().listFiles();
+        if (sub == null) {
+            return new ArrayList<>();
+        }
+        List<File> files = Arrays.stream(sub).collect(Collectors.toList());
+        files.sort((File file1, File file2) -> {
+            try {
+                Integer name1 = Integer.parseInt(file1.getName());
+                Integer name2 = Integer.parseInt(file2.getName());
+                return name2 - name1;
+            }catch (Exception e) {
+                log.error("市场文件夹异常, 存在非日期的文件夹: ", e);
+                return 0;
+            }
+        });
+        return files;
+    }
+
 
     /**
      * 返回tar.gz文件列表
