@@ -21,12 +21,9 @@ import site.xleon.future.ctp.services.mapper.InstrumentMapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -220,20 +217,17 @@ public class MarketController {
             }
             // 倒序获取行情文件 a2307_20230507.csv
             Path path = Paths.get(dir.getPath(), instrument+ "_" + dir.getName() + ".csv");
-            log.info("file: {}", path.toUri());
             if (!path.toFile().exists()) {
                 break;
             }
 
-            List<TradingEntity> period = marketService.listKLines(instrument, interval, dir.getName());
+            List<TradingEntity> period = dataService.listKLines(instrument, interval, dir.getName());
             result.addAll(0, period);
             if (result.size() > 225 * 3) {
                 break;
             }
         }
 
-//        List<TradingEntity> periods = marketService.listKLines(instrument, interval);
-//        log.info("periods length", periods.size());
         return Result.success(result);
     }
 }
