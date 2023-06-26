@@ -9,6 +9,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.Ctp;
 
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,9 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
 
     @Autowired
     private MarketService marketService;
+
+    @Autowired
+    private DataService dataService;
 
     @SneakyThrows
     @Override
@@ -145,6 +149,10 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
         string += dateFormat.format(new Date(System.currentTimeMillis())) + "\r\n";
 
         FileUtils.write(path.toFile(), string, StandardCharsets.UTF_8, true);
+
+        // 保存最新行情
+        TradingEntity trading = TradingEntity.createByString(string);
+        dataService.getQuote().put(trading.getInstrumentId(), trading);
     }
     @Override
     public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {

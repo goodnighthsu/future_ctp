@@ -278,21 +278,36 @@ public class TradingEntity {
         String[] array = line.split(",");
         TradingEntity trading = new TradingEntity();
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
+        trading.instrumentId = array[0];
+        trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
+        if (array[23].length() > 0) {
+            trading.bidPrice1 = BigDecimal.valueOf(Double.parseDouble(array[23]));
+        }
+        trading.bidVolume1 = Integer.parseInt(array[24]);
+        if (array[25].length() > 0) {
+            trading.askPrice1 = BigDecimal.valueOf(Double.parseDouble(array[25]));
+        }
+        trading.askVolume1 = Integer.parseInt(array[26]);
         trading.actionDay = array[43].split(" ")[0];
         trading.actionTime = array[2] + "." + array[3];
+        trading.upperLimitPrice = BigDecimal.valueOf(Double.parseDouble(array[18]));
+        trading.lowerLimitPrice = BigDecimal.valueOf(Double.parseDouble(array[19]));
+        trading.volume = Double.valueOf(array[13]).longValue();
+        if (array[11].length() > 0) {
+            trading.highestPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
+        }
+        if (array[12].length() > 0) {
+            trading.lowestPrice = BigDecimal.valueOf(Double.parseDouble(array[12]));
+        }
+
+        trading.preSettlementPrice = BigDecimal.valueOf(Double.parseDouble(array[7]));
         trading.tradingActionTime = df.parse(array[1] + " " + trading.actionTime);
-        trading.instrumentId = array[0];
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];
-        trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
         if (array[11].length() > 0) {
             trading.openPrice = BigDecimal.valueOf(Double.parseDouble(array[10]));
         }
-        trading.highestPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
-        trading.lowestPrice = BigDecimal.valueOf(Double.parseDouble(array[12]));
-        trading.volume = Double.valueOf(array[13]).longValue();
         trading.openInterest = Double.valueOf(array[15]).longValue();
-
 
         return trading;
     }

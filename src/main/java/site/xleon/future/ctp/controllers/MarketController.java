@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -229,5 +230,14 @@ public class MarketController {
         }
 
         return Result.success(result);
+    }
+
+    @GetMapping("/instrument/quotes")
+    public Result<List<TradingEntity>> listQuotes() {
+        List<TradingEntity> quotes = dataService.getQuote().values().stream()
+                .sorted(Comparator.comparingLong(TradingEntity::getVolume).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+        return Result.success(quotes);
     }
 }
