@@ -1,6 +1,7 @@
 package site.xleon.future.ctp.services.impl;
 
 import com.alibaba.fastjson.JSON;
+import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -21,17 +22,24 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 @Service("dataService")
 @Slf4j
+@Data
 public class DataService {
     private static final String DIR = "data";
 
     @Autowired
     private CtpInfo ctpInfo;
+
+    /**
+     * 交易日合约市场信息
+     */
+    private HashMap<String, TradingEntity> quote = new HashMap<>();
 
     /**
      * init file 文件不存在就创建
