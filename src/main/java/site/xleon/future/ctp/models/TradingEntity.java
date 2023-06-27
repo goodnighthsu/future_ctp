@@ -39,6 +39,7 @@ public class TradingEntity {
             return Optional.empty();
         }
         SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss.SSS");
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         return Optional.of(df.parse(actionTime));
     }
 
@@ -278,6 +279,7 @@ public class TradingEntity {
         String[] array = line.split(",");
         TradingEntity trading = new TradingEntity();
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         trading.actionDay = array[43].split(" ")[0];
         trading.actionTime = array[2] + "." + array[3];
         trading.tradingActionTime = df.parse(array[1] + " " + trading.actionTime);
@@ -285,14 +287,17 @@ public class TradingEntity {
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];
         trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
-        if (array[11].length() > 0) {
+        if (array[10].length() > 0) {
             trading.openPrice = BigDecimal.valueOf(Double.parseDouble(array[10]));
         }
-        trading.highestPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
-        trading.lowestPrice = BigDecimal.valueOf(Double.parseDouble(array[12]));
+        if (array[11].length() > 0) {
+            trading.highestPrice = BigDecimal.valueOf(Double.parseDouble(array[11]));
+        }
+        if (array[12].length() > 0) {
+            trading.lowestPrice = BigDecimal.valueOf(Double.parseDouble(array[12]));
+        }
         trading.volume = Double.valueOf(array[13]).longValue();
         trading.openInterest = Double.valueOf(array[15]).longValue();
-
 
         return trading;
     }
