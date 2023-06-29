@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @Data
@@ -369,6 +370,18 @@ public class TradingEntity {
             if (closeTime < openTime) {
                 closeTime += 60*60*24*1000;
             }
+            // 1小时 开盘时间不能整除的用上个可整除时间， 收盘时间整除后加上interval
+            if (interval == 3600) {
+                long mod = openTime % (interval * 1000);
+                if (mod != 0) {
+                    openTime = openTime - mod;
+                }
+                mod = closeTime % (interval * 1000);
+                if (mod != 0) {
+                    closeTime = closeTime - mod + interval * 1000;
+                }
+            }
+
             long time = openTime;
             while (time < closeTime) {
                 Date date = new Date(time);
@@ -380,7 +393,8 @@ public class TradingEntity {
                 times.add(fullDateFormat.format(new Date(closeTime)));
             }
         }
-        return times;
+        // 去重
+        return times.stream().distinct().collect(Collectors.toList());
     }
 }
 
