@@ -9,6 +9,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.Ctp;
 
@@ -28,6 +29,9 @@ import java.util.Date;
 public class MdSpiImpl extends CThostFtdcMdSpi {
     @Autowired
     private CtpInfo ctpInfo;
+
+    @Autowired
+    private AppConfig appConfig;
 
     @Autowired
     private MarketService marketService;
@@ -148,7 +152,11 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
 
         string += dateFormat.format(new Date(System.currentTimeMillis())) + "\r\n";
 
-        FileUtils.write(path.toFile(), string, StandardCharsets.UTF_8, true);
+        // 写入行情
+        if (appConfig.getSchedule().getSaveQuotation() == null ||
+                appConfig.getSchedule().getSaveQuotation()) {
+            FileUtils.write(path.toFile(), string, StandardCharsets.UTF_8, true);
+        }
 
         // 保存最新行情
         TradingEntity trading = TradingEntity.createByString(string);

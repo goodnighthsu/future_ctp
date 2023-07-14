@@ -305,6 +305,7 @@ public class TradingEntity {
 
         trading.preSettlementPrice = BigDecimal.valueOf(Double.parseDouble(array[7]));
         trading.tradingActionTime = df.parse(array[1] + " " + trading.actionTime);
+        trading.recvTime = df.parse(array[44]);
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];
         if (array[10].length() > 0) {

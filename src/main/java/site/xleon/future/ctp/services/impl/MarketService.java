@@ -134,6 +134,10 @@ public class MarketService {
         } else {
             log.info("行情订阅 {} 条, 订阅关闭", ids.length);
         }
+
+        if (!appConfig.getSchedule().getSaveQuotation()) {
+            log.info("行情订阅 {} 条, 行情保存关闭", ids.length);
+        }
     }
 
     /**

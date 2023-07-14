@@ -236,7 +236,7 @@ public class MarketController {
     public Result<List<TradingEntity>> listQuotes() {
         List<TradingEntity> quotes = dataService.getQuote().values().stream()
                 .sorted(Comparator.comparingLong(TradingEntity::getVolume).reversed())
-                .limit(10)
+                .limit(100)
                 .collect(Collectors.toList());
         return Result.success(quotes);
     }

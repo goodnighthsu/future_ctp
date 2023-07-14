@@ -8,9 +8,14 @@ import lombok.Data;
 @Data
 public class ScheduleConfig {
     /**
-     *
+     * 是否订阅行情
      */
     private Boolean subscribe;
+
+    /**
+     * 是否保存行情
+     */
+     private Boolean saveQuotation;
 
     /**
      * 是否压缩行情数据
