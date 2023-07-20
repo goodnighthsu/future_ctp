@@ -12,7 +12,7 @@ import java.util.List;
  * 调用位于公网的ctp主服务
  * 提供行情文件下载服务
  */
-@FeignClient(name = "ctp" , url="http://xleon.site:8800")
+@FeignClient(name = "ctp" , url="http://124.221.2.131:8800")
 public interface CtpMasterClient {
     @GetMapping(value = "/market/tar")
     Result<List<String>> listTar();

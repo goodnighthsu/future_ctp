@@ -177,14 +177,11 @@ public class MarketService {
                 String[] contentLengths = response.headers().get("Content-Length").toArray(new String[0]);
                 long contentLength = Long.parseLong(contentLengths[0]);
 
-//                rep.reset();
-//                rep.setContentType("application/octet-stream;charset=utf-8");
-//                rep.addHeader("Content-Disposition", "attachment;filename=" + fileName);
                 try (
                         FileOutputStream fos = new FileOutputStream(new File("backup", fileName));
                         BufferedInputStream bis = new BufferedInputStream(response.body().asInputStream())
-//                        OutputStream output = rep.getOutputStream();
                 ) {
+                    // 文件下载
                     byte[] buffer = new byte[8096];
                     int len;
                     long download = 0;
@@ -207,6 +204,8 @@ public class MarketService {
                         downloadInMinute = 0;
                         start = System.currentTimeMillis();
                     }
+
+                    // 解压缩
                 } catch (IOException e) {
                     throw new MyException(e.getMessage());
                 }

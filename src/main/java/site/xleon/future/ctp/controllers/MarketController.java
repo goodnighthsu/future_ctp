@@ -8,6 +8,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
@@ -239,5 +240,13 @@ public class MarketController {
                 .limit(100)
                 .collect(Collectors.toList());
         return Result.success(quotes);
+    }
+
+    @GetMapping("/uncompress")
+    public Result<String> uncompress() throws IOException {
+        Path sourcePath = Paths.get("./data", "test.tar.gz");
+        Path targetPath = Paths.get("./test");
+        CompressUtils.uncompress(sourcePath, targetPath);
+        return Result.success("success");
     }
 }

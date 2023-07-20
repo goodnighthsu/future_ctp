@@ -1,14 +1,24 @@
 package site.xleon.future.ctp.core.utils;
 
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jsqlparser.statement.truncate.Truncate;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.harmony.pack200.Archive;
+import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.EnumSet;
+import java.util.zip.GZIPInputStream;
 
 @Slf4j
 public class CompressUtils {
@@ -27,7 +37,6 @@ public class CompressUtils {
         ) {
             compress(srcPath.toFile(), tarOut, null);
         }
-
     }
 
     private static void compress(File file, TarArchiveOutputStream tarOut, String basePath) throws IOException {
@@ -66,6 +75,24 @@ public class CompressUtils {
             String entryName = Paths.get(basePath, file.getName()).toString();
             tarOut.putArchiveEntry(new TarArchiveEntry(entryName + File.separator));
             tarOut.closeArchiveEntry();
+        }
+    }
+
+    public static void uncompress(Path sourcePath, Path targetPath) throws IOException {
+        try (
+                BufferedInputStream inputStream = IOUtils.buffer(Files.newInputStream(sourcePath));
+                GzipCompressorInputStream gzInputStream = new GzipCompressorInputStream(inputStream);
+                ArchiveInputStream archiveInput = new TarArchiveInputStream(gzInputStream);
+        ) {
+            ArchiveEntry entry = null;
+            while((entry = archiveInput.getNextEntry()) != null) {
+                Path subPath = Paths.get(targetPath.toString(), entry.getName());
+                byte[] content = new byte[(int)entry.getSize()];
+                archiveInput.read();
+                try (BufferedOutputStream outputStream = IOUtils.buffer(Files.newOutputStream(subPath,StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING)) ) {
+                    IOUtils.copy(archiveInput, outputStream);
+                }
+            }
         }
     }
 }
