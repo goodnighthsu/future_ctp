@@ -143,8 +143,23 @@ public class MarketController {
         }
     }
 
+    /**
+     * 市场行情文件删除
+     */
+    @GetMapping("/delete")
+    public Result<String> delete(
+            @RequestParam String fileName
+    ) throws MyException {
+
+        Path path = Paths.get(DataService.DIR, fileName);
+        if (!path.toFile().delete()) {
+            throw new MyException(fileName + "delete failure");
+        }
+        return Result.success(fileName + " deleted");
+    }
+
     @GetMapping("/autoDownload")
-    public void autoDownload() throws MyException {
+    public void autoDownload() throws MyException, IOException {
        marketService.download();
     }
 
@@ -240,13 +255,5 @@ public class MarketController {
                 .limit(100)
                 .collect(Collectors.toList());
         return Result.success(quotes);
-    }
-
-    @GetMapping("/uncompress")
-    public Result<String> uncompress() throws IOException {
-        Path sourcePath = Paths.get("./data", "test.tar.gz");
-        Path targetPath = Paths.get("./test");
-        CompressUtils.uncompress(sourcePath, targetPath);
-        return Result.success("success");
     }
 }

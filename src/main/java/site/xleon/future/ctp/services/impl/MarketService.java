@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
@@ -17,7 +18,6 @@ import site.xleon.future.ctp.services.Ctp;
 import site.xleon.future.ctp.services.CtpMasterClient;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -114,8 +114,6 @@ public class MarketService {
         return userId;
     }
 
-
-
     /**
      * ctp 订阅合约
      */
@@ -155,63 +153,104 @@ public class MarketService {
         log.info("instruments unsubscribe total {} ", ids.length);
     }
 
-    public void download() throws MyException {
+    /**
+     * 下载市场行情文件
+     * @throws MyException exception
+     */
+    public void download() throws MyException, IOException {
         // 列出所有行情文件
         Result<List<String>> result = marketClient.listTar();
 
         List<String> fileNames = result.getData();
         log.info("市场行情文件下载开始, 文件数量: {}", fileNames.size());
-        long start = System.currentTimeMillis();
+
         for (String fileName : fileNames) {
-            Path backup = Paths.get("backup", fileName);
-            if (backup.toFile().exists()) {
+            Path backupPath = Paths.get(DataService.BACK_UP, fileName);
+            if (backupPath.toFile().exists()) {
                 log.info("市场行情文件已存在: {}", fileName);
                 continue;
             }
-            log.info("市场行情文件下载开始: {}", fileName);
-            try (Response response = marketClient.marketFileDownload(fileName)) {
-                if (response.status() != 200) {
-                    throw new MyException("市场行情文件下载失败: " + fileName + " " + response.body().toString());
-                }
-                log.info(response.headers().toString());
-                String[] contentLengths = response.headers().get("Content-Length").toArray(new String[0]);
-                long contentLength = Long.parseLong(contentLengths[0]);
 
-                try (
-                        FileOutputStream fos = new FileOutputStream(new File("backup", fileName));
-                        BufferedInputStream bis = new BufferedInputStream(response.body().asInputStream())
-                ) {
-                    // 文件下载
-                    byte[] buffer = new byte[8096];
-                    int len;
-                    long download = 0;
-                    long downloadInMinute = 0;
-                    NumberFormat nf = NumberFormat.getNumberInstance();
-                    nf.setMaximumFractionDigits(2);
+            // 下载
+            downloadFile(fileName, backupPath);
 
-                    while ((len = bis.read(buffer)) != -1) {
-                        fos.write(buffer, 0, len);
-                        download += len;
-                        downloadInMinute += len;
-                        if ((start + 15 * 1000) > System.currentTimeMillis()) {
-                            continue;
-                        }
+            // 解压
+            Path targetPath = Paths.get(DataService.HISTORY_DIR);
+            CompressUtils.uncompress(backupPath, targetPath);
 
-                        log.info("{} progress: {} / {}kb/s", fileName,
-                                nf.format(download * 100.0 / contentLength) + "%",
-                                nf.format(downloadInMinute / 1024 / 60)
-                        );
-                        downloadInMinute = 0;
-                        start = System.currentTimeMillis();
+            // 删除主服务器文件
+            marketClient.marketFileDelete(fileName);
+        }
+    }
+
+    /**
+     * 下载文件
+     * @param fileName 下载源文件
+     * @param targetPath 下载目的文件
+     * @throws MyException exception
+     */
+    private void downloadFile(String fileName, Path targetPath) throws MyException {
+        if (!targetPath.getParent().toFile().exists()) {
+            boolean isSuccess = targetPath.getParent().toFile().mkdirs();
+            if (!isSuccess) {
+                throw new MyException("创建下载文件夹失败: " + targetPath);
+            }
+        }
+        log.info("市场行情文件下载开始: {}", fileName);
+        long contentLength;
+        try (Response response = marketClient.marketFileDownload(fileName)) {
+            if (response.status() != 200) {
+                throw new MyException("市场行情文件下载失败: " + fileName + " " + response.body().toString());
+            }
+            String[] contentLengths = response.headers().get("Content-Length").toArray(new String[0]);
+            contentLength = Long.parseLong(contentLengths[0]);
+
+            // 下载进度时间起点， 每隔15s打印进度
+            long start = System.currentTimeMillis();
+            try (
+                    FileOutputStream fos = new FileOutputStream(targetPath.toFile());
+                    BufferedInputStream bis = new BufferedInputStream(response.body().asInputStream())
+            ) {
+                // 文件下载
+                byte[] buffer = new byte[8096];
+                int len;
+                long download = 0;
+                long downloadInMinute = 0;
+                NumberFormat nf = NumberFormat.getNumberInstance();
+                nf.setMaximumFractionDigits(2);
+
+                while ((len = bis.read(buffer)) != -1) {
+                    fos.write(buffer, 0, len);
+                    download += len;
+                    downloadInMinute += len;
+                    if ((start + 15 * 1000) > System.currentTimeMillis()) {
+                        continue;
                     }
 
-                    // 解压缩
-                } catch (IOException e) {
-                    throw new MyException(e.getMessage());
+                    log.info("{} progress: {} / {}kb/s", fileName,
+                            nf.format(download * 100.0 / contentLength) + "%",
+                            nf.format(downloadInMinute / 1024 / 60)
+                    );
+                    downloadInMinute = 0;
+                    // 重置打印时间
+                    start = System.currentTimeMillis();
                 }
+
+            } catch (IOException e) {
+                throw new MyException(e.getMessage());
             }
-            log.info("市场行情文件下载完成: {}", fileName);
         }
+
+        if (contentLength != targetPath.toFile().length()){
+            // 下载失败, 删除下载的文件
+            if ( targetPath.toFile().delete()) {
+                log.error("市场行情文件{}删除失败", targetPath);
+            }
+
+            throw new MyException("市场行情文件" + fileName + "下载失败, 下载文件长度不匹配");
+        }
+
+        log.info("市场行情文件下载完成: {}", fileName);
     }
 }
 

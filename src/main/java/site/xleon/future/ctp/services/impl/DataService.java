@@ -31,7 +31,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @Data
 public class DataService {
-    private static final String DIR = "data";
+    /**
+     * 从ctp下载行情文件的保存目录
+     */
+    public static final String DIR = "data";
+
+    /**
+     * 从主服务器下载的行情文件的保存目录
+     */
+    public static final String BACK_UP = "backup";
+
+    /**
+     * 保存行情文件历史记录目录
+     * 从主服务器下载的数据
+     */
+    public static final String HISTORY_DIR = "history";
 
     @Autowired
     private CtpInfo ctpInfo;

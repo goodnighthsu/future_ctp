@@ -24,4 +24,12 @@ public interface CtpMasterClient {
      */
     @GetMapping(value = "/market/download")
     Response marketFileDownload(@RequestParam String fileName);
+
+    /**
+     * 删除行情文件
+     * @param fileName 文件名
+     * @return Result
+     */
+    @GetMapping(value = "/market/delete")
+    Result<String> marketFileDelete(@RequestParam String fileName);
 }

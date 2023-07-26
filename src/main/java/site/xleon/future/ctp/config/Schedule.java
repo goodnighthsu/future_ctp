@@ -12,6 +12,7 @@ import site.xleon.future.ctp.services.CtpMasterClient;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
+import java.io.IOException;
 
 @Configuration
 @EnableAsync
@@ -91,7 +92,7 @@ public class Schedule {
 
     @Async
     @Scheduled(cron = "0 0 5 * * ?")
-    public void autoDownload () throws MyException {
+    public void autoDownload () throws MyException, IOException {
         if (!config.getSchedule().getDownloadCtpData()) {
             log.info("行情文件下载跳过");
             return;

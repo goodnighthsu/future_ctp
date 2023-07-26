@@ -1,7 +1,6 @@
 package site.xleon.future.ctp.core.utils;
 
 import lombok.extern.slf4j.Slf4j;
-import net.sf.jsqlparser.statement.truncate.Truncate;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -9,16 +8,14 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.compress.harmony.pack200.Archive;
 import org.apache.commons.io.IOUtils;
+import site.xleon.future.ctp.core.MyException;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.EnumSet;
-import java.util.zip.GZIPInputStream;
 
 @Slf4j
 public class CompressUtils {
@@ -33,7 +30,7 @@ public class CompressUtils {
         try (
                 OutputStream output = new BufferedOutputStream(Files.newOutputStream(destPath));
                 GzipCompressorOutputStream gzOut = new GzipCompressorOutputStream(output);
-                TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzOut);
+                TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzOut)
         ) {
             compress(srcPath.toFile(), tarOut, null);
         }
@@ -78,21 +75,37 @@ public class CompressUtils {
         }
     }
 
-    public static void uncompress(Path sourcePath, Path targetPath) throws IOException {
+    /**
+     * 解压tar.gz文件
+     * @param sourcePath 源文件
+     * @param targetDir 目标目录
+     * @throws IOException exception
+     */
+    public static void uncompress(Path sourcePath, Path targetDir) throws IOException, MyException {
         try (
                 BufferedInputStream inputStream = IOUtils.buffer(Files.newInputStream(sourcePath));
                 GzipCompressorInputStream gzInputStream = new GzipCompressorInputStream(inputStream);
-                ArchiveInputStream archiveInput = new TarArchiveInputStream(gzInputStream);
+                ArchiveInputStream archiveInput = new TarArchiveInputStream(gzInputStream)
         ) {
-            ArchiveEntry entry = null;
+            ArchiveEntry entry;
+            int count = 0;
             while((entry = archiveInput.getNextEntry()) != null) {
-                Path subPath = Paths.get(targetPath.toString(), entry.getName());
-                byte[] content = new byte[(int)entry.getSize()];
+                count ++;
+
+                Path subPath = Paths.get(targetDir.toString(), entry.getName());
+                if (!subPath.getParent().toFile().isDirectory()) {
+                    boolean success = subPath.getParent().toFile().mkdirs();
+                    if (!success) {
+                        throw new MyException("创建文件夹失败" + subPath.getParent().toString());
+                    }
+                }
                 archiveInput.read();
                 try (BufferedOutputStream outputStream = IOUtils.buffer(Files.newOutputStream(subPath,StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING)) ) {
                     IOUtils.copy(archiveInput, outputStream);
                 }
+                log.info("entry name: {} uncompressed", entry.getName());
             }
+            log.info("entry total: {}", count );
         }
     }
 }
