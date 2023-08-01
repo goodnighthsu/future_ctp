@@ -80,7 +80,7 @@ public class Schedule {
      */
     @Async
     @Scheduled(cron = "0 0 6 * * ?")
-    public void autoCompress () {
+    public void autoCompress () throws IOException {
         if (!config.getSchedule().getMarketDataAutoCompress()) {
             log.info("自动压缩跳过");
             return;

@@ -5,7 +5,6 @@ import org.apache.commons.io.FileUtils;
 import site.xleon.future.ctp.config.CtpInfo;
 import ctp.thostmduserapi.*;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,9 +12,11 @@ import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.Ctp;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -39,7 +40,6 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
     @Autowired
     private DataService dataService;
 
-    @SneakyThrows
     @Override
     public void OnFrontConnected() {
         marketService.setIsConnected(true);
@@ -94,7 +94,6 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
      * @param data 行情
      */
     @Override
-    @SneakyThrows
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField data) {
         Path path = Paths.get("data", ctpInfo.getTradingDay(), data.getInstrumentID() + "_" + ctpInfo.getTradingDay() + ".csv");
         String string = data.getInstrumentID() + ","
@@ -155,12 +154,21 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
         // 写入行情
         if (appConfig.getSchedule().getSaveQuotation() == null ||
                 appConfig.getSchedule().getSaveQuotation()) {
-            FileUtils.write(path.toFile(), string, StandardCharsets.UTF_8, true);
+            try {
+                FileUtils.write(path.toFile(), string, StandardCharsets.UTF_8, true);
+            } catch (IOException e) {
+                log.error("行情写入失败: {}", e.getMessage());
+            }
         }
 
         // 保存最新行情
-        TradingEntity trading = TradingEntity.createByString(string);
-        dataService.getQuote().put(trading.getInstrumentId(), trading);
+        TradingEntity trading = null;
+        try {
+            trading = TradingEntity.createByString(string);
+        } catch (ParseException e) {
+            log.error("行情解析失败: {}", e.getMessage());
+        }
+        dataService.getQuoteCurrent().put(trading.getInstrumentId(), trading);
     }
     @Override
     public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {

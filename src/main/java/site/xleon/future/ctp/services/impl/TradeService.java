@@ -3,7 +3,6 @@ package site.xleon.future.ctp.services.impl;
 import ctp.thosttraderapi.CThostFtdcReqAuthenticateField;
 import ctp.thosttraderapi.CThostFtdcReqUserLoginField;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
@@ -82,8 +81,7 @@ public class TradeService implements ITradingService {
      * ctp 登录
      * @return userId
      */
-    @SneakyThrows
-    public String login() {
+    public String login() throws MyException, InterruptedException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if (!getIsConnected()) {
             throw new MyException("交易前置未连接");
         }
@@ -114,8 +112,7 @@ public class TradeService implements ITradingService {
     /**
      * 更新合约信息库
      */
-    @SneakyThrows
-    public void updateInstrument() {
+    public void updateInstrument() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
         // 登入成功后，查询合约
         List<InstrumentEntity> aInstruments = listTrading();
         // 需要更新的
@@ -148,13 +145,13 @@ public class TradeService implements ITradingService {
         }
 
         log.info("{}条新合约", adds.size());
-        if (adds.size() > 0 ) {
+        if (!adds.isEmpty() ) {
             instrumentService.saveBatch(adds);
             log.info("新合约保存成功");
         }
 
         log.info("{}条合约状态更新", updates.size());
-        if (updates.size() > 0) {
+        if (!updates.isEmpty()) {
             instrumentService.updateBatchById(updates);
             log.info("合约更新成功");
         }

@@ -22,7 +22,6 @@ public class TradeLoginAspect {
     public void tradeNeedLogin() {
     }
 
-
     @Pointcut("execution(* site.xleon.future.ctp.services.impl.TradeService.auth()) || " +
             "execution(* site.xleon.future.ctp.services.impl.TradeService.get*(..)) || " +
             "execution(* site.xleon.future.ctp.services.impl.TradeService.set*(..)) || " +

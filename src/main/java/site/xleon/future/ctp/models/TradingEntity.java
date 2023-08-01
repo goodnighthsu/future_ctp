@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -359,8 +358,7 @@ public class TradingEntity {
      * 不包含 11:20 11:25 13:30 13:35
      * @return 交易时间段
      */
-    @SneakyThrows
-    public List<String> getTimeLinesByInterval(Integer interval, Boolean isIncludeClose) {
+    public List<String> getTimeLinesByInterval(Integer interval, Boolean isIncludeClose) throws ParseException {
         List<String> times = new ArrayList<>();
         List<String> schedules = this.getSchedule();
         for (int i = 0; i < schedules.size(); i = i + 2) {

@@ -15,7 +15,7 @@ public class ScheduleConfig {
     /**
      * 是否保存行情
      */
-     private Boolean saveQuotation;
+    private Boolean saveQuotation;
 
     /**
      * 是否压缩行情数据

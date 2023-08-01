@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import site.xleon.future.ctp.config.CtpInfo;
+import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;

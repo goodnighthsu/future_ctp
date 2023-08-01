@@ -1,6 +1,5 @@
 package site.xleon.future.ctp.services.impl;
 
-import lombok.SneakyThrows;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.Ctp;
@@ -10,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +35,6 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     /**
      * 客户端与交易托管连接成功（还未登录）
      */
-    @SneakyThrows
     @Override
     public void OnFrontConnected(){
         log.info("交易前置连接成功");

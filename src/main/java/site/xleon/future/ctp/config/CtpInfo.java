@@ -2,7 +2,6 @@ package site.xleon.future.ctp.config;
 
 import ctp.thostmduserapi.CThostFtdcMdApi;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -20,7 +19,7 @@ public class CtpInfo {
      * 交易日
      */
     private String tradingDay;
-    @SneakyThrows
+
     public String getTradingDay() {
         if (tradingDay == null) {
             tradingDay = mdApi.GetTradingDay();

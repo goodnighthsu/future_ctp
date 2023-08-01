@@ -25,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -221,7 +222,7 @@ public class MarketController {
     public Result<List<TradingEntity>> listPeriodByInterval(
             @RequestParam String instrument,
             @RequestParam String tradingDay,
-            @RequestParam Integer interval) {
+            @RequestParam Integer interval) throws ParseException {
         int _tradingDay = Integer.parseInt(tradingDay);
 
         List<TradingEntity> result = new ArrayList<>();
@@ -254,7 +255,7 @@ public class MarketController {
      */
     @GetMapping("/instrument/quotes")
     public Result<List<TradingEntity>> listQuotes() {
-        List<TradingEntity> quotes = dataService.getQuote().values().stream()
+        List<TradingEntity> quotes = dataService.getQuoteCurrent().values().stream()
                 .sorted(Comparator.comparingLong(TradingEntity::getVolume).reversed())
                 .limit(100)
                 .collect(Collectors.toList());

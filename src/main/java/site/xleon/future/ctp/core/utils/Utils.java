@@ -1,7 +1,6 @@
 package site.xleon.future.ctp.core.utils;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.DigestUtils;
@@ -11,12 +10,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.DecimalFormat;
@@ -136,8 +138,7 @@ public class Utils {
         /**
          * enumOf 通过value构造enum, value可以为null, 不能非法
          */
-        @SneakyThrows
-        public static <T> T enumOf(Class<T> enumClass, Object value) {
+        public static <T> T enumOf(Class<T> enumClass, Object value) throws Exception {
             if (value == null) {
                 return null;
             }
@@ -439,7 +440,6 @@ public class Utils {
             );
         }
 
-        @SneakyThrows
         public static String getFileHeader(File file) {
             try(FileInputStream inputStream = new FileInputStream(file)) {
                 byte[] bytes = new byte[4];
@@ -581,8 +581,7 @@ public class Utils {
     public static class SHA256 {
         private SHA256() {};
 
-        @SneakyThrows
-        public static String getSHA256(String string) {
+        public static String getSHA256(String string) throws NoSuchAlgorithmException {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(string.getBytes(StandardCharsets.UTF_8));
             return DatatypeConverter.printHexBinary(digest.digest()).toLowerCase();
@@ -606,8 +605,7 @@ public class Utils {
          * @param inputFileUrl 加密文件路径
          * @param outputFileUrl 加密后文件路径
          */
-        @SneakyThrows
-        public static void encryptFile(String publicKeyUrl, String inputFileUrl, String outputFileUrl) {
+        public static void encryptFile(String publicKeyUrl, String inputFileUrl, String outputFileUrl) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
             String publicKeyString = Utils.FileExtends.getString(publicKeyUrl);
             // 移除所有换行符
             publicKeyString = publicKeyString.replace("\r", "");
@@ -635,10 +633,16 @@ public class Utils {
                 outputStream.write(wrappedKey);
 
                 // input
-                try(InputStream inputStream = new FileInputStream(inputFileUrl)) {
+                try(InputStream inputStream = Files.newInputStream(Paths.get(inputFileUrl))) {
                     cipher = Cipher.getInstance(KEY_AES);
                     cipher.init(Cipher.ENCRYPT_MODE, key);
                     process(inputStream, outputStream, cipher);
+                } catch (ShortBufferException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalBlockSizeException e) {
+                    throw new RuntimeException(e);
+                } catch (BadPaddingException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -649,8 +653,7 @@ public class Utils {
          * @param inputFileUrl 待解密文件路径
          * @param outputFileUrl 解密后的文件路径
          */
-        @SneakyThrows
-        public static void decrypt(String privateKeyUrl, String inputFileUrl, String outputFileUrl)  {
+        public static void decrypt(String privateKeyUrl, String inputFileUrl, String outputFileUrl) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
             // private key
             String privateKeyString = Utils.FileExtends.getString(privateKeyUrl);
             // 移除所有换行符
@@ -678,6 +681,16 @@ public class Utils {
 
                     process(inputStream, outputStream, cipher);
                 }
+            } catch (NoSuchPaddingException e) {
+                throw new RuntimeException(e);
+            } catch (ShortBufferException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalBlockSizeException e) {
+                throw new RuntimeException(e);
+            } catch (BadPaddingException e) {
+                throw new RuntimeException(e);
+            } catch (InvalidKeyException e) {
+                throw new RuntimeException(e);
             }
         }
 

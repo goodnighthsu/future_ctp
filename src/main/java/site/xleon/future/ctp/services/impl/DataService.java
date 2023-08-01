@@ -2,7 +2,6 @@ package site.xleon.future.ctp.services.impl;
 
 import com.alibaba.fastjson.JSON;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.ReversedLinesFileReader;
@@ -53,15 +52,14 @@ public class DataService {
     /**
      * 交易日合约市场信息
      */
-    private HashMap<String, TradingEntity> quote = new HashMap<>();
+    private HashMap<String, TradingEntity> quoteCurrent = new HashMap<>();
 
     /**
      * init file 文件不存在就创建
      *
      * @param path path
      */
-    @SneakyThrows
-    public void initFile(Path path) {
+    public void initFile(Path path) throws IOException {
         if (!Files.exists(path) && !Files.isDirectory(path)) {
             FileUtils.createParentDirectories(path.toFile());
             Files.createFile(path);
@@ -141,29 +139,26 @@ public class DataService {
         return list;
     }
 
-    public void compress() {
+    public void compress() throws IOException {
         Path path = Paths.get(DIR);
         File[] files = path.toFile().listFiles();
         if (files == null) {
             log.info("压缩跳过，没有可压缩文件");
             return;
         }
-        Arrays.stream(files).forEach(item -> {
+
+        for (File item :
+                files) {
             // 是目录且不是当天交易日目录
             if (item.isDirectory() && !item.getName().equals(ctpInfo.getTradingDay())) {
                 log.info("auto compress dir {}", item.getName());
-                try {
-                    log.info("{} compress start", item.getName());
-                    CompressUtils.tar(item.toPath(), Paths.get("data", item.getName() + ".tar.gz"));
-                    log.info("{} compress end", item.getName());
-                    FileUtils.deleteDirectory(item);
-                    log.info("{} deleted", item.getName());
-                } catch (IOException e) {
-                    log.error("{} compress error: ", item.getName(), e);
-                    throw new RuntimeException(e);
-                }
+                log.info("{} compress start", item.getName());
+                CompressUtils.tar(item.toPath(), Paths.get("data", item.getName() + ".tar.gz"));
+                log.info("{} compress end", item.getName());
+                FileUtils.deleteDirectory(item);
+                log.info("{} deleted", item.getName());
             }
-        });
+        }
     }
 
     /**
@@ -200,7 +195,7 @@ public class DataService {
     /**
      * 合约交易日k线
      */
-    public List<TradingEntity> listKLines(String instrument, Integer interval, String tradingDay) {
+    public List<TradingEntity> listKLines(String instrument, Integer interval, String tradingDay) throws ParseException {
         List<String> quotes = this.readMarket(tradingDay, instrument, 0);
         TradingEntity trading = TradingEntity.createByInstrument(instrument);
         // 交易时间段，不包含收盘
