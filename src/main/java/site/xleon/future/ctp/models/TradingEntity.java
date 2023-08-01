@@ -280,6 +280,7 @@ public class TradingEntity {
         TradingEntity trading = new TradingEntity();
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
 //        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String today = df.format(new Date()).split(" ")[0];
         trading.instrumentId = array[0];
         trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
         if (array[23].length() > 0) {
@@ -303,7 +304,7 @@ public class TradingEntity {
         }
 
         trading.preSettlementPrice = BigDecimal.valueOf(Double.parseDouble(array[7]));
-        trading.tradingActionTime = df.parse(array[1] + " " + trading.actionTime);
+        trading.tradingActionTime = df.parse(today + " " + trading.actionTime);
         trading.recvTime = df.parse(array[44]);
         trading.exchangeId = array[4];
         trading.exchangeInstId = array[5];

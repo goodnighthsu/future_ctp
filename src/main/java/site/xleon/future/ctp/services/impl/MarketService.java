@@ -243,7 +243,7 @@ public class MarketService {
 
         if (contentLength != targetPath.toFile().length()){
             // 下载失败, 删除下载的文件
-            if ( targetPath.toFile().delete()) {
+            if (targetPath.toFile().delete()) {
                 log.error("市场行情文件{}删除失败", targetPath);
             }
 
