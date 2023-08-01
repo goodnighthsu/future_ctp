@@ -242,7 +242,6 @@ public class DataService {
                 periods.add(kLine);
 
                 // 时间段端内数据
-
                 for (int i = last; i < quotes.size(); i++) {
                     TradingEntity quote = TradingEntity.createByString(quotes.get(i));
                     // 跳过脏数据，没有开盘价格

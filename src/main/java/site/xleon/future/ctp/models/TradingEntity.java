@@ -280,7 +280,7 @@ public class TradingEntity {
         String[] array = line.split(",");
         TradingEntity trading = new TradingEntity();
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+//        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         trading.instrumentId = array[0];
         trading.lastPrice = BigDecimal.valueOf(Double.parseDouble(array[6]));
         if (array[23].length() > 0) {

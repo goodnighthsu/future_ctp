@@ -248,6 +248,10 @@ public class MarketController {
         return Result.success(result);
     }
 
+    /**
+     * 实时行情
+     * @return 行情信息
+     */
     @GetMapping("/instrument/quotes")
     public Result<List<TradingEntity>> listQuotes() {
         List<TradingEntity> quotes = dataService.getQuote().values().stream()

@@ -158,7 +158,6 @@ public class TradeService implements ITradingService {
             instrumentService.updateBatchById(updates);
             log.info("合约更新成功");
         }
-
     }
 
     /**
