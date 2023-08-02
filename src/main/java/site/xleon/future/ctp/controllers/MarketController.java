@@ -8,7 +8,6 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
-import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
@@ -29,6 +28,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -222,13 +222,19 @@ public class MarketController {
     public Result<List<TradingEntity>> listPeriodByInterval(
             @RequestParam String instrument,
             @RequestParam String tradingDay,
-            @RequestParam Integer interval) throws ParseException {
+            @RequestParam Integer interval) {
         int _tradingDay = Integer.parseInt(tradingDay);
 
-        List<TradingEntity> result = new ArrayList<>();
         List<File> dirs = dataService.listMarkets();
-        for (File dir:
-                dirs) {
+        List<List<TradingEntity>> trades = new ArrayList<>(dirs.size());
+        dirs.forEach(item -> {
+            trades.add(new ArrayList<>());
+        });
+
+        List<CompletableFuture> allFutures = new ArrayList<>();
+        for (int index = 0; index < dirs.size(); index ++) {
+            int finalIndex = index;
+            File dir = dirs.get(index);
             int _dir = 0;
             try {
                  _dir = Integer.parseInt(dir.getName());
@@ -243,14 +249,32 @@ public class MarketController {
             if (!path.toFile().exists()) {
                 break;
             }
+            CompletableFuture<List<TradingEntity>> future = CompletableFuture.supplyAsync(() -> {
+                List<TradingEntity> period = new ArrayList<>();
+                try {
+                    period = dataService.listKLines(instrument, interval, dir.getName());
+                    trades.set(finalIndex, period);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                log.info("period: {}", period.size());
+                return period;
+            });
+            allFutures.add(future);
 
-            List<TradingEntity> period = dataService.listKLines(instrument, interval, dir.getName());
-            result.addAll(0, period);
-            if (result.size() > 225 * 3) {
-                break;
-            }
+//            List<TradingEntity> period = dataService.listKLines(instrument, interval, dir.getName());
+//            result.addAll(0, period);
+//            if (result.size() > 225 * 3) {
+//                break;
+//            }
         }
 
+        CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]))
+                .join();
+        List<TradingEntity> result = new ArrayList<>();
+        trades.forEach(item -> {
+            result.addAll(0, item);
+        });
         return Result.success(result);
     }
 
