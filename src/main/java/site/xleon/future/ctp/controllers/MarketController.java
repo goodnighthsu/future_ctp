@@ -229,7 +229,12 @@ public class MarketController {
         List<File> dirs = dataService.listMarkets();
         for (File dir:
                 dirs) {
-            int _dir = Integer.parseInt(dir.getName());
+            int _dir = 0;
+            try {
+                 _dir = Integer.parseInt(dir.getName());
+            }catch (Exception e) {
+                // ignore
+            }
             if (_dir > _tradingDay) {
                 continue;
             }

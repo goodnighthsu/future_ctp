@@ -178,8 +178,8 @@ public class DataService {
                 return name2 - name1;
             } catch (Exception e) {
                 log.error("市场文件夹异常, 存在非日期的文件夹: ", e);
-                return 0;
             }
+            return 0;
         }).collect(Collectors.toList());
     }
 

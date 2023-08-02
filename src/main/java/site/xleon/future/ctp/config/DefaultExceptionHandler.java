@@ -2,6 +2,7 @@ package site.xleon.future.ctp.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
+import org.springframework.http.HttpStatus;
 import site.xleon.future.ctp.models.Result;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -45,7 +46,8 @@ public class DefaultExceptionHandler extends BasicErrorController {
         Result<String> result = Result.fail(message);
         Map<String, Object> map = JSONObject.parseObject(JSON.toJSONString(result), HashMap.class);
         log.error("{}", map);
-        return new ResponseEntity<>(map, getStatus(request));
+//        return new ResponseEntity<>(map, getStatus(request));
+        return new ResponseEntity<>(map, HttpStatus.OK);
     }
 
 //    @ResponseBody
