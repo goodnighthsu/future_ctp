@@ -1,9 +1,16 @@
 spring:
   cloud:
     nacos:
+      discovery:
+        server-addr: 192.168.1.201:8848
+        username: nacos
+        password: nacos@leonx.site
       config:
-        server-addr: 192.168.255.201:8848
+        server-addr: 192.168.1.201:8848
+        username: nacos
+        password: nacos@leonx.site
         file-extension: yml
+
         #       future
         namespace: 24120332-082f-41c1-a66f-bda4905a9811
 
@@ -11,4 +18,4 @@ spring:
     #    name: ctp
     name: ctpslave
   profiles:
-    active: dev
+    active: devhome

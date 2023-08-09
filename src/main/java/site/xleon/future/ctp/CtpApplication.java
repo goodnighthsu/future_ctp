@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Slf4j
 @SpringBootApplication
@@ -26,5 +27,6 @@ public class CtpApplication {
         log.info("library path: {}", System.getProperty("java.library.path"));
         String version = CThostFtdcMdApi.GetApiVersion();
         log.info("version: {}", version);
+        log.info("nacos: {}", new BCryptPasswordEncoder().encode("nacos@leonx.site"));
     }
 }
