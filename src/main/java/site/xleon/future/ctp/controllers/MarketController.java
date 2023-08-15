@@ -24,7 +24,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -232,7 +231,9 @@ public class MarketController {
         });
 
         List<CompletableFuture> allFutures = new ArrayList<>();
-        for (int index = 0; index < dirs.size(); index ++) {
+        // 最多取3天
+        int maxTradingSize = Math.min(dirs.size(), 3);
+        for (int index = 0; index < maxTradingSize; index ++) {
             int finalIndex = index;
             File dir = dirs.get(index);
             int _dir = 0;
@@ -250,15 +251,17 @@ public class MarketController {
                 break;
             }
             CompletableFuture<List<TradingEntity>> future = CompletableFuture.supplyAsync(() -> {
-                List<TradingEntity> period = new ArrayList<>();
+
                 try {
-                    period = dataService.listKLines(instrument, interval, dir.getName());
+                    List<TradingEntity> period  = dataService.listKLines(instrument, interval, dir.getName());
+                    log.info("period: {}-{}", dir.getName(), period.size());
                     trades.set(finalIndex, period);
+                    return period;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                log.info("period: {}", period.size());
-                return period;
+
+                return new ArrayList<>();
             });
             allFutures.add(future);
 

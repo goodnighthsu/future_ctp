@@ -194,6 +194,7 @@ public class DataService {
 
     /**
      * 合约交易日k线
+     * 当天交易，实际交易时间缺失
      */
     public List<TradingEntity> listKLines(String instrument, Integer interval, String tradingDay) throws ParseException {
         List<String> quotes = this.readMarket(tradingDay, instrument, 0);
@@ -215,6 +216,7 @@ public class DataService {
         boolean isTradingOpen = true;
         // 收盘成交量
         Long closeVolume = 0L;
+        log.info("instrument/tradingday/line: {}/{}/{}/{}", instrument,tradingDay, quotes.size(), timeLines.size());
         for (String timeLine : timeLines) {
             try {
                 long openTime = df.parse(timeLine).getTime();
@@ -305,8 +307,18 @@ public class DataService {
                 }
 
                 lastKLine = kLine;
-            } catch (ParseException e) {
-                e.printStackTrace();
+
+                // TODO: 当天交易，实际交易时间缺失
+                /**
+                 * eg: 交易日是8/14周一, 实际交易日可能是 8/11的21：00 到 8/12的2:00 到 8/14的9：00-15：00
+                 * 现在使用的是收到行情里的apction day,  如果是当日交易就没有尚未发生交易的日期
+                 * tradingActionTime为空
+                 */
+                if (kLine.getTradingActionTime() == null) {
+                    periods.remove(kLine);
+                }
+            } catch (Exception e) {
+                log.error("error: {}", e.getMessage());
             }
         }
 
