@@ -334,22 +334,24 @@ public class TradingEntity {
             return Schedule6;
         }
 
-        Pattern pattern = Pattern.compile("^\\w{1,2}");
+        // 先匹配2位英文的， 没有匹配1位英文
+        Pattern pattern = Pattern.compile("^[a-zA-Z]{2}");
         Matcher matcher = pattern.matcher(this.instrumentId);
         if (!matcher.find()) {
-            return new ArrayList<>();
+            pattern = Pattern.compile("^[a-zA-Z]");
+            matcher = pattern.matcher(this.instrumentId);
+            if (!matcher.find()) {
+                return new ArrayList<>();
+            }
         }
 
         String code = matcher.group(0);
-        Optional<TimeConfig> finded = TIME_CONFIG.stream()
+        Optional<TimeConfig> found = TIME_CONFIG.stream()
                 .filter(timeConfig -> timeConfig.getProducts().contains(code))
                 .findFirst();
-        TimeConfig config =  finded.orElseGet(TimeConfig::new);
+        TimeConfig config =  found.orElseGet(TimeConfig::new);
         return config.getSchedules();
     }
-
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
-    private static final SimpleDateFormat fullDateFormat = new SimpleDateFormat("HH:mm:ss");
 
     /**
      * 获取交易时间段
@@ -362,6 +364,9 @@ public class TradingEntity {
     public List<String> getTimeLinesByInterval(Integer interval, Boolean isIncludeClose) throws ParseException {
         List<String> times = new ArrayList<>();
         List<String> schedules = this.getSchedule();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        SimpleDateFormat fullDateFormat = new SimpleDateFormat("HH:mm:ss");
+
         for (int i = 0; i < schedules.size(); i = i + 2) {
             String openTimeString = schedules.get(i);
             long openTime = dateFormat.parse(openTimeString).getTime();
@@ -393,6 +398,8 @@ public class TradingEntity {
                 times.add(fullDateFormat.format(new Date(closeTime)));
             }
         }
+
+        System.out.println("schedule: " + interval + "/" + schedules.size() + "/" + times.size());
         // 去重
         return times.stream().distinct().collect(Collectors.toList());
     }
