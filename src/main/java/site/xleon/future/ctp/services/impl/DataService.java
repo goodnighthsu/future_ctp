@@ -46,6 +46,11 @@ public class DataService {
      */
     public static final String HISTORY_DIR = "history";
 
+    /**
+     * 年交易日
+     */
+    public static final String TRADING_DAY = "tradingDay";
+
     @Autowired
     private CtpInfo ctpInfo;
 
