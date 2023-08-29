@@ -154,8 +154,11 @@ public class MarketService {
     }
 
     /**
-     * 下载市场行情文件
+     * 下载备份的市场行情文件
+     * @apiNote 从主服务器下载压缩的行情文件到backup文件夹，并解压缩到history文件夹，
+     * 解压成功后删除主服务上的压缩文件
      * @throws MyException exception
+     * @throws IOException exception
      */
     public void download() throws MyException, IOException {
         // 列出所有行情文件
@@ -196,7 +199,7 @@ public class MarketService {
                 throw new MyException("创建下载文件夹失败: " + targetPath);
             }
         }
-        log.info("市场行情文件下载开始: {}", fileName);
+        log.info("文件下载开始: {}", fileName);
         long contentLength;
         try (Response response = marketClient.marketFileDownload(fileName)) {
             if (response.status() != 200) {
@@ -244,13 +247,13 @@ public class MarketService {
         if (contentLength != targetPath.toFile().length()){
             // 下载失败, 删除下载的文件
             if (targetPath.toFile().delete()) {
-                log.error("市场行情文件{}删除失败", targetPath);
+                log.error("文件{}删除失败", targetPath);
             }
 
-            throw new MyException("市场行情文件" + fileName + "下载失败, 下载文件长度不匹配");
+            throw new MyException("文件" + fileName + "下载失败, 下载文件长度不匹配");
         }
 
-        log.info("市场行情文件下载完成: {}", fileName);
+        log.info("文件下载完成: {}", fileName);
     }
 }
 

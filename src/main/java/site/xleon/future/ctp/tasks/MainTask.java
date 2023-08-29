@@ -2,11 +2,13 @@ package site.xleon.future.ctp.tasks;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import site.xleon.future.ctp.config.CtpInfo;
-import site.xleon.future.ctp.core.MyException;
+import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.MarketService;
 import site.xleon.future.ctp.services.impl.TradeService;
@@ -18,6 +20,12 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 public class MainTask {
+
+    @Autowired
+    private ApplicationContext context;
+
+    @Autowired
+    private AppConfig appConfig;
 
     @Autowired
     private MarketTask marketTask;
@@ -39,6 +47,8 @@ public class MainTask {
 
     @Bean
     public ExecutorService executorService() {
+        init();
+
         ThreadFactory threadFactory = new CustomizableThreadFactory("mainPool-");
         ExecutorService executor = new ThreadPoolExecutor(
                 3,
@@ -56,6 +66,19 @@ public class MainTask {
         executor.execute(autScribeThread);
 
         return executor;
+    }
+
+    /**
+     * 配置init
+     */
+    private void init() {
+        if (!appConfig.getHistoryPath().toFile().exists()) {
+            boolean isSuccess = appConfig.getHistoryPath().toFile().mkdirs();
+            if(!isSuccess) {
+                log.error("init: create history directory failure");
+                SpringApplication.exit(context, () -> 0);
+            }
+        }
     }
 
     /**

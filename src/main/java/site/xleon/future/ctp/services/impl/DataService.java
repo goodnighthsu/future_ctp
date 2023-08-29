@@ -71,7 +71,7 @@ public class DataService {
         }
     }
 
-    private <T> List<T> readJson(Path path, Class<T> clazz) throws IOException {
+    public <T> List<T> readJson(Path path, Class<T> clazz) throws IOException {
         if (!Files.exists(path)) {
             return new ArrayList<>();
         }
@@ -144,6 +144,11 @@ public class DataService {
         return list;
     }
 
+    /**
+     * 打包非交易日行情文件
+     * @apiNote 打包data文件夹下非交易日目录，打包成功后删除交易日文件夹
+     * @throws IOException exception
+     */
     public void compress() throws IOException {
         Path path = Paths.get(DIR);
         File[] files = path.toFile().listFiles();

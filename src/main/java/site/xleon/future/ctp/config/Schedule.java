@@ -77,6 +77,7 @@ public class Schedule {
 
     /**
      * 自动压缩
+     * 压缩非交易日的行情文件到data目录
      */
     @Async
     @Scheduled(cron = "0 0 6 * * ?")
@@ -90,6 +91,13 @@ public class Schedule {
         log.info("自动压缩完成");
     }
 
+    /**
+     * 下载备份的市场行情文件
+     * @apiNote 从主服务器下载压缩的行情文件到backup文件夹，并解压缩到history文件夹，
+     * 解压成功后删除主服务上的压缩文件
+     * @throws MyException
+     * @throws IOException
+     */
     @Async
     @Scheduled(cron = "0 0 5 * * ?")
     public void autoDownload () throws MyException, IOException {
