@@ -12,6 +12,7 @@ import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.HistoryModel;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.services.impl.DataService;
+import site.xleon.future.ctp.services.impl.MarketService;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,9 @@ public class ConfigController {
     @Autowired
     private DataService dataService;
 
+    @Autowired
+    private MarketService marketService;
+
     /**
      * 打包非交易日行情文件
      */
@@ -38,6 +42,12 @@ public class ConfigController {
         log.info("请求打包非交易日行情文件");
         dataService.compress();
         return Result.success("package command send");
+    }
+
+    @GetMapping("/download/history")
+    public Result<String> downloadHistory() throws MyException, IOException {
+        marketService.download();
+        return Result.success("download history success");
     }
 
     /**
