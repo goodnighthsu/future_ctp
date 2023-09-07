@@ -80,7 +80,7 @@ public class Schedule {
      * 压缩非交易日的行情文件到data目录
      */
     @Async
-    @Scheduled(cron = "0 0 6 * * ?")
+    @Scheduled(cron = "0 0 5 * * ?")
     public void autoCompress () throws IOException {
         if (!config.getSchedule().getMarketDataAutoCompress()) {
             log.info("自动压缩跳过");
@@ -99,7 +99,7 @@ public class Schedule {
      * @throws IOException
      */
     @Async
-    @Scheduled(cron = "0 0 5 * * ?")
+    @Scheduled(cron = "0 0 7 * * ?")
     public void autoDownload () throws MyException, IOException {
         if (!config.getSchedule().getDownloadCtpData()) {
             log.info("行情文件下载跳过");

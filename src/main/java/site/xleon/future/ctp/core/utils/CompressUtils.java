@@ -103,7 +103,6 @@ public class CompressUtils {
                 try (BufferedOutputStream outputStream = IOUtils.buffer(Files.newOutputStream(subPath,StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING)) ) {
                     IOUtils.copy(archiveInput, outputStream);
                 }
-                log.info("entry name: {} uncompressed", entry.getName());
             }
             log.info("entry total: {}", count );
         }
