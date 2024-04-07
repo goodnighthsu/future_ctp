@@ -11,6 +11,7 @@ import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.HistoryModel;
 import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.services.impl.DataService;
+import site.xleon.future.ctp.services.impl.MdService;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +39,9 @@ public class ConfigController {
     @Autowired
     private DataService dataService;
 
+    @Autowired
+    private MdService mdService;
+
     /**
      * 打包非交易日行情文件
      */
@@ -48,11 +52,17 @@ public class ConfigController {
         return Result.success("package command send");
     }
 
+    @GetMapping("/download/history")
+    public Result<String> downloadHistory() throws MyException, IOException {
+        mdService.download();
+        return Result.success("download history success");
+    }
+
     /**
      * 行情历史文件状态
      */
     @GetMapping("/history")
-    public Result<List<HistoryModel>>state() throws IOException, MyException {
+    public Result<List<HistoryModel>>state(){
         File[] files = appConfig.getHistoryPath().toFile().listFiles();
         List<HistoryModel> histories = new ArrayList<>();
         if (files == null) {
