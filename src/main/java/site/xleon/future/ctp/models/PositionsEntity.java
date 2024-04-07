@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import site.xleon.future.ctp.core.cql.BaseEntity;
 
 import java.math.BigDecimal;
 
@@ -12,7 +13,7 @@ import java.math.BigDecimal;
  */
 @Data
 @TableName("position")
-public class PositionsEntity extends BaseEntity{
+public class PositionsEntity extends BaseEntity {
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 

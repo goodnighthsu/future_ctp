@@ -2,13 +2,12 @@ package site.xleon.future.ctp.services.impl;
 
 import lombok.EqualsAndHashCode;
 import org.apache.commons.io.FileUtils;
-import site.xleon.future.ctp.config.CtpInfo;
 import ctp.thostmduserapi.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import site.xleon.future.ctp.config.app_config.AppConfig;
+import site.xleon.future.ctp.core.enums.StateEnum;
+import site.xleon.future.ctp.core.utils.SpringUtils;
 import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.Ctp;
 
@@ -24,64 +23,34 @@ import java.util.Date;
  * 市场行情回调
  */
 @EqualsAndHashCode(callSuper = true)
-@Component
 @Data
 @Slf4j
 public class MdSpiImpl extends CThostFtdcMdSpi {
-    @Autowired
-    private CtpInfo ctpInfo;
-
-    @Autowired
-    private AppConfig appConfig;
-
-    @Autowired
-    private MarketService marketService;
-
-    @Autowired
-    private DataService dataService;
-
     @Override
     public void OnFrontConnected() {
-        marketService.setIsConnected(true);
-        marketService.setIsLogin(false);
-        log.info("行情前置连接成功");
-        new Thread(()-> {
-            try {
-                marketService.login();
-            } catch (Exception e) {
-                log.error("行情登录错误: {}", e.getMessage());
-                marketService.setIsLogin(false);
-            }
-        }).start();
+        log.info("行情前置 {}: connected", MdService.getFronts());
+         MdService.notifyConnected(StateEnum.SUCCESS);
     }
 
     @Override
-    public void OnFrontDisconnected(int reason) {
-        log.error("行情前置断开: {}", reason);
-        marketService.setIsConnected(false);
-        marketService.setIsLogin(false);
+    public void OnFrontDisconnected(int nReason) {
+        MdService.notifyConnected(StateEnum.byReason(nReason));
+        MdService.notifyLogin(StateEnum.DISCONNECT);
+        log.error("行情前置断开: {}", StateEnum.byReason(nReason).getLabel());
     }
 
     @Override
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        Ctp.get(0)
-            .append(response -> {
-                if (pRspUserLogin.getTradingDay().equals("19800100")) {
-                    pRspInfo.setErrorID(-1);
-                    pRspInfo.setErrorMsg("行情登录失败");
-                    marketService.setIsLogin(false);
-                    log.error("行情登录失败: {}", pRspInfo.getErrorMsg());
-                }else {
-                    marketService.setIsLogin(true);
-                    log.info("行情登录成功");
-                }
-                return pRspUserLogin.getTradingDay();
-            })
-            .marketFinish(pRspInfo, bIsLast);
+        log.info("登录响应 {}: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        MdService.notifyLogin(StateEnum.SUCCESS);
+        Ctp.get(nRequestID)
+                .append(response -> pRspUserLogin.getUserID())
+                .marketFinish(pRspInfo, bIsLast);
     }
 
     public void onRspUserLogout(CThostFtdcUserLogoutField pUserLogout, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        log.info("logout: {} {} {} {}", pUserLogout.getBrokerID(), pUserLogout.getUserID(), pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        log.info("登出响应: {} {} {} {}", pUserLogout.getBrokerID(), pUserLogout.getUserID(), pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        MdService.notifyLogin(StateEnum.DISCONNECT);
         Ctp.get(nRequestID)
             .append(response -> pUserLogout.getUserID())
             .marketFinish(pRspInfo, bIsLast);
@@ -95,9 +64,9 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
      */
     @Override
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField data) {
-        Path path = Paths.get("data", ctpInfo.getTradingDay(), data.getInstrumentID() + "_" + ctpInfo.getTradingDay() + ".csv");
+        Path path = Paths.get("data", MdService.getTradingDay(), data.getInstrumentID() + "_" + MdService.getTradingDay() + ".csv");
         String string = data.getInstrumentID() + ","
-                + ctpInfo.getTradingDay() + ","
+                + MdService.getTradingDay() + ","
                 + data.getUpdateTime() + ","
                 + data.getUpdateMillisec() + ","
                 + data.getExchangeID() + ","
@@ -151,6 +120,7 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
 
         string += dateFormat.format(new Date(System.currentTimeMillis())) + "\r\n";
 
+        AppConfig appConfig = SpringUtils.getBean("appConfig");
         // 写入行情
         if (appConfig.getSchedule().getSaveQuotation() == null ||
                 appConfig.getSchedule().getSaveQuotation()) {
@@ -168,11 +138,13 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
         } catch (ParseException e) {
             log.error("行情解析失败: {}", e.getMessage());
         }
+        DataService dataService = SpringUtils.getBean("dataService");
         dataService.getQuoteCurrent().put(trading.getInstrumentId(), trading);
     }
     @Override
     public void OnRspError(CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         super.OnRspError(pRspInfo, nRequestID, bIsLast);
+        log.error("OnRspError {}: error {}: {}", nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         Ctp.get(nRequestID)
             .append(response -> pRspInfo.getErrorMsg())
             .marketFinish(pRspInfo, bIsLast);

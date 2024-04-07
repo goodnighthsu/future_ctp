@@ -1,6 +1,7 @@
 package site.xleon.future.ctp.core.utils;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.DigestUtils;
@@ -10,7 +11,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +31,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+
+@Slf4j
 /**
  * @author leon.xu
  */
@@ -808,5 +810,23 @@ public class Utils {
         }
 
         return median;
+    }
+
+    public static class Reflect {
+        public static Class<?> getFieldType(Class<?> clz, String filedName) {
+            if (clz == null) return null;
+
+            try {
+                return clz.getDeclaredField(filedName).getType();
+            }catch (NoSuchFieldException e) {
+
+                if (clz.getSuperclass() != null) {
+                    return getFieldType(clz.getSuperclass(), filedName);
+                }
+            }
+
+
+            return null;
+        }
     }
 }

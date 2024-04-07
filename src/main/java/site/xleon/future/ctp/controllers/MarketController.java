@@ -2,26 +2,28 @@ package site.xleon.future.ctp.controllers;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.common.base.CaseFormat;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.future.ctp.config.app_config.UserConfig;
+import site.xleon.future.ctp.core.enums.StateEnum;
+import site.xleon.future.ctp.models.ApiState;
 import site.xleon.future.ctp.models.Result;
-import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.utils.Utils;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.models.TradingEntity;
 import site.xleon.future.ctp.services.impl.DataService;
-import site.xleon.future.ctp.services.impl.MarketService;
+import site.xleon.future.ctp.services.impl.MdService;
 import site.xleon.future.ctp.services.mapper.InstrumentMapper;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,34 +41,58 @@ import java.util.stream.Collectors;
 @RefreshScope
 @RequestMapping("/market")
 public class MarketController {
-
-    @Autowired
-    private CtpInfo ctpInfo;
-
     @Autowired
     private InstrumentMapper instrumentMapper;
 
     @Autowired
-    private MarketService marketService;
+    private MdService mdService;
 
     @Autowired
     private DataService dataService;
 
     /**
-     * ctp 登录
-     *
-     * @return trading day
+     * market api state
+     * @return api state
      */
-    @GetMapping("/login")
-    public Result<String> login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        String tradingDay = marketService.login();
-        return Result.success(tradingDay);
+    @GetMapping("/state")
+    public Result<ApiState> state() {
+        return Result.success(mdService.state());
     }
 
-    @GetMapping("/logout")
-    public Result<String> logout() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        String result = marketService.logout();
-        return Result.success(result);
+
+    /**
+     * ctp 行情登录
+     * @param user 用户
+     * @return user id
+     */
+    @SneakyThrows
+    @PostMapping("/login")
+    public Result<String> login(@RequestBody UserConfig user)  {
+        return Result.success(mdService.login(user));
+    }
+
+    /**
+     * ctp 行情登出
+     * @deprecated ctp 不支持
+     * @param user 用户
+     * @return user id
+     */
+//    @PostMapping("/logout")
+//    public Result<String> logout(@RequestBody UserConfig user) {
+//        return Result.success(mdService.logout(user));
+//    }
+
+    /**
+     * 注册交易前置
+     * @param fronts 交易前置
+     * @return 交易前置
+     */
+    @SneakyThrows
+    @PostMapping("/registerFront")
+    public Result<String> front(
+            @RequestBody List<String> fronts) {
+        StateEnum state = MdService.setFronts(fronts);
+        return Result.success(state.getLabel());
     }
 
     /**
@@ -75,8 +101,18 @@ public class MarketController {
      */
     @GetMapping("/tradingDay")
     public Result<String> tradingDay() {
-        String tradingDay = this.ctpInfo.getTradingDay();
-        return Result.success(tradingDay);
+        return Result.success(MdService.getTradingDay());
+    }
+
+    /**
+     * 合约订阅
+     * @param instruments instruments
+     * @return instruments
+     */
+    @PostMapping("/subscribe")
+    public Result<List<String>> subscribe(
+            @RequestBody List<String> instruments) {
+        return Result.success(mdService.subscribe(instruments));
     }
 
     /**
@@ -103,7 +139,7 @@ public class MarketController {
             @RequestParam @NonNull String holidays
     ) throws IOException {
         DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyyMMdd");
-        List<String> _holidays = Arrays.stream(holidays.split(",")).collect(Collectors.toList());
+        List<String> aHolidays = Arrays.stream(holidays.split(",")).collect(Collectors.toList());
         List<String> allDates = new ArrayList<>();
         LocalDate startDate = LocalDate.of(year, Month.JANUARY, 1);
         LocalDate endDate = LocalDate.of(year, Month.DECEMBER, 31);
@@ -112,7 +148,7 @@ public class MarketController {
 
         while (!currentDate.isAfter(endDate)) {
             log.info("{}", currentDate.format(df));
-            if (!_holidays.contains(currentDate.format(df)) &&
+            if (!aHolidays.contains(currentDate.format(df)) &&
                     currentDate.getDayOfWeek() != DayOfWeek.SATURDAY &&
                     currentDate.getDayOfWeek() != DayOfWeek.SUNDAY
             ) {
@@ -138,11 +174,11 @@ public class MarketController {
     @GetMapping("/query")
     public Result<List<String>> query(
             @RequestParam @NonNull String instrument,
-            @RequestParam @Nullable String tradingDay,
+            @RequestParam(required = false) String tradingDay,
             @RequestParam(defaultValue = "0") Integer index
     ) {
         if (tradingDay == null || tradingDay.isEmpty()) {
-            tradingDay = ctpInfo.getTradingDay();
+            tradingDay = MdService.getTradingDay();
         }
         return Result.success(dataService.readMarket(tradingDay, instrument, index));
     }
@@ -217,7 +253,7 @@ public class MarketController {
 
     @GetMapping("/autoDownload")
     public void autoDownload() throws MyException, IOException {
-       marketService.download();
+       mdService.download();
     }
 
     /**
@@ -227,16 +263,43 @@ public class MarketController {
      */
     @GetMapping("/instruments")
     public Result<List<InstrumentEntity>> instruments(
+            @RequestParam(required = false) Integer idMin,
+            @RequestParam(required = false) Integer idMax,
+            @RequestParam(required = false) String instrumentName,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "50") Integer pageSize) {
+            @RequestParam(defaultValue = "50") Integer pageSize,
+            @RequestParam(required = false) String sorter,
+            @RequestParam(required = false) String order
+    ) {
         Page<InstrumentEntity> paging = Utils.page(page, pageSize);
         QueryWrapper<InstrumentEntity> query = new QueryWrapper<>();
 
-        if (keyword != null && keyword.length() > 0 ) {
-            query.eq("id", keyword);
+        if (idMin != null) {
+            query.ge("id", idMin);
         }
-        query.select().orderByDesc("id");
+        if (idMax != null) {
+            query.le("id", idMax);
+        }
+        if (instrumentName != null) {
+            query.like("instrument_name", "%" + instrumentName + "%");
+        }
+
+        if (sorter == null) {
+            query.select().orderByDesc("id");
+        } else {
+            String mySorter = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, sorter);
+            if (order != null) {
+                if (order.equals("ascend")) {
+                    query.select().orderByAsc(mySorter);
+                } else if (order.equals("descend")) {
+                    query.select().orderByDesc(mySorter);
+                }
+            } else {
+                query.select().orderByDesc("id");
+            }
+        }
+
         Page<InstrumentEntity> instruments = instrumentMapper.selectPage(paging, query);
 
         return Result.page(instruments);
@@ -260,14 +323,14 @@ public class MarketController {
      */
     @GetMapping("/funds")
     public Result<List<TradingEntity>> funds() {
-        List<TradingEntity> tradings = dataService.readMarketFund(ctpInfo.getTradingDay());
+        List<TradingEntity> tradings = dataService.readMarketFund(MdService.getTradingDay());
         return Result.success(tradings);
     }
 
     @GetMapping("/instrument/schedule")
     public Result<List<String>> schedule(String instrument, Integer interval) {
         TradingEntity trading = TradingEntity.createByInstrument(instrument);
-        String tradingDay = ctpInfo.getTradingDay();
+        String tradingDay = MdService.getTradingDay();
         List<String> quotes = dataService.readMarket(tradingDay, instrument, 0);
 
 
@@ -279,27 +342,25 @@ public class MarketController {
             @RequestParam String instrument,
             @RequestParam String tradingDay,
             @RequestParam Integer interval) {
-        int _tradingDay = Integer.parseInt(tradingDay);
+        int aTradingDay = Integer.parseInt(tradingDay);
 
         List<File> dirs = dataService.listMarkets();
         List<List<TradingEntity>> trades = new ArrayList<>(dirs.size());
-        dirs.forEach(item -> {
-            trades.add(new ArrayList<>());
-        });
+        dirs.forEach(item -> trades.add(new ArrayList<>()));
 
-        List<CompletableFuture> allFutures = new ArrayList<>();
+        List<CompletableFuture<List<TradingEntity>>> allFutures = new ArrayList<>();
         // 最多取3天
         int maxTradingSize = Math.min(dirs.size(), 5);
         for (int index = 0; index < maxTradingSize; index ++) {
             int finalIndex = index;
             File dir = dirs.get(index);
-            int _dir = 0;
+            int aDir = 0;
             try {
-                 _dir = Integer.parseInt(dir.getName());
+                aDir = Integer.parseInt(dir.getName());
             }catch (Exception e) {
                 // ignore
             }
-            if (_dir > _tradingDay) {
+            if (aDir > aTradingDay) {
                 continue;
             }
             // 倒序获取行情文件 a2307_20230507.csv
@@ -326,9 +387,7 @@ public class MarketController {
         CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]))
                 .join();
         List<TradingEntity> result = new ArrayList<>();
-        trades.forEach(item -> {
-            result.addAll(0, item);
-        });
+        trades.forEach(item -> result.addAll(0, item));
         return Result.success(result);
     }
 

@@ -1,16 +1,15 @@
 package site.xleon.future.ctp.services.impl;
 
-import ctp.thostmduserapi.CThostFtdcMdApi;
-import ctp.thostmduserapi.CThostFtdcReqUserLoginField;
-import ctp.thostmduserapi.CThostFtdcUserLogoutField;
+import ctp.thostmduserapi.*;
 import feign.Response;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import site.xleon.future.ctp.core.enums.StateEnum;
 import site.xleon.future.ctp.core.utils.CompressUtils;
+import site.xleon.future.ctp.models.ApiState;
 import site.xleon.future.ctp.models.Result;
-import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.core.MyException;
@@ -18,27 +17,22 @@ import site.xleon.future.ctp.services.Ctp;
 import site.xleon.future.ctp.services.CtpMasterClient;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
 @Service("marketService")
 @Slf4j
-public class MarketService {
+public class MdService {
     @Autowired
     private AppConfig appConfig;
-
-    @Autowired
-    private CtpInfo ctpInfo;
-
-    @Autowired
-    private CThostFtdcMdApi mdApi;
 
     @Autowired
     private DataService dataService;
@@ -46,16 +40,113 @@ public class MarketService {
     @Autowired
     private CtpMasterClient marketClient;
 
-    /**
-     * 前置是否连接
-     */
-    private Boolean isConnected = false;
+    private static String tradingDay;
+    public static String getTradingDay() {
+        MdService.tradingDay = mdApi.GetTradingDay();
+        return MdService.tradingDay;
+    }
+    public static void setTradingDay(String value) {
+        tradingDay = value;
+    }
 
     /**
-     * 前置是否登录
+     * 登录用户
      */
-    private Boolean isLogin = false;
+    private static UserConfig user;
 
+    public static final Object loginLock = new Object();
+    /**
+     * 用户是否登录
+     */
+    private static volatile StateEnum loginState = StateEnum.DISCONNECT;
+    public static StateEnum getLoginState() {
+        synchronized (loginLock){
+            return loginState;
+        }
+    }
+
+    /**
+     * 更新用户的登录状态
+     * @param value 登录状态
+     */
+    public static void notifyLogin(StateEnum value) {
+        synchronized (MdService.loginLock) {
+            loginState = value;
+            MdService.loginLock.notifyAll();
+        }
+    }
+
+    private static CThostFtdcMdSpi mdSpi;
+    /**
+     * 行情api
+     */
+    private static CThostFtdcMdApi mdApi;
+    static {
+        mdApi = CThostFtdcMdApi.CreateFtdcMdApi("flow" + File.separator);
+        mdSpi = new MdSpiImpl();
+        mdApi.RegisterSpi(mdSpi);
+        mdApi.Init();
+    }
+
+    private static final Object connectLock = new Object();
+    /**
+     * 前置连接状态
+     */
+    private static StateEnum connectState = StateEnum.DISCONNECT;
+    public static StateEnum getConnectState() {
+        return connectState;
+    }
+
+    /**
+     * 行情前置地址
+     */
+    private static List<String> fronts = new ArrayList<>();
+    public static List<String> getFronts() {
+        return fronts;
+    }
+    /**
+     * 重置前置连接
+     * @param fronts 前置地址数组 eg: ["tcp://180.169.75.18:61213"]
+     * @return 连接状态
+     */
+    public static StateEnum setFronts(List<String> fronts) throws InterruptedException, MyException {
+        MdService.fronts = fronts;
+        connectState = StateEnum.DISCONNECT;
+        loginState = StateEnum.DISCONNECT;
+        if (mdApi != null) {
+            mdApi.Release();
+        }
+
+        mdApi = CThostFtdcMdApi.CreateFtdcMdApi("flow" + File.separator);
+        for (String front: fronts) {
+            mdApi.RegisterFront(front);
+        }
+        mdSpi = new MdSpiImpl();
+        mdApi.RegisterSpi(mdSpi);
+        mdApi.Init();
+
+        synchronized (connectLock) {
+            while (StateEnum.DISCONNECT == connectState) {
+                connectLock.wait(6000);
+                // 超时退出
+                if (StateEnum.DISCONNECT == connectState) {
+                    throw new MyException(StateEnum.TIMEOUT.getLabel());
+                }
+            }
+        }
+
+        return connectState;
+    }
+
+    /**
+     * 设置前置已连接
+     */
+    public static synchronized void notifyConnected(StateEnum value) {
+        synchronized (connectLock) {
+            connectState = value;
+            connectLock.notifyAll();
+        }
+    }
 
     /**
      * 订阅的合约
@@ -66,62 +157,66 @@ public class MarketService {
      * 登录
      * @return trading day
      */
-    public String login() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        if (!getIsConnected()) {
-            throw new MyException("ctp 前置未连接");
-        }
-        if (getIsLogin()) {
-            log.info("market已登录: {}", ctpInfo.getTradingDay());
-            return ctpInfo.getTradingDay();
+    public String login(UserConfig user) throws MyException {
+        if (StateEnum.SUCCESS == MdService.getLoginState()) {
+            throw new MyException("用户已登录，请勿重复登录");
         }
         Ctp<String> ctp = new Ctp<>();
         ctp.setId(0);
-        String tradingDay = ctp.request(requestId -> {
-            CThostFtdcReqUserLoginField field = new CThostFtdcReqUserLoginField();
-            UserConfig user = appConfig.getUser();
-            field.setBrokerID(user.getBrokerId());
-            field.setUserID(user.getUserId());
-            field.setPassword(user.getPassword());
-            return mdApi.ReqUserLogin(field, requestId);
-        });
-        ctpInfo.setTradingDay(tradingDay);
-        setIsLogin(true);
-        synchronized (CtpInfo.loginLock) {
-            CtpInfo.loginLock.notifyAll();
-            log.info("行情登录成功通知");
+        try {
+            ctp.request(requestId -> {
+                CThostFtdcReqUserLoginField field = new CThostFtdcReqUserLoginField();
+                field.setBrokerID(user.getBrokerId());
+                field.setUserID(user.getUserId());
+                field.setPassword(user.getPassword());
+                return mdApi.ReqUserLogin(field, requestId);
+            });
+        }catch (Exception e) {
+            log.info("login: ", e);
         }
-        return tradingDay;
+
+        String aTradingDay = mdApi.GetTradingDay();
+        MdService.setTradingDay(aTradingDay);
+        return aTradingDay;
     }
 
     /**
-     * 登出
-     * @return userId
+     * 退出登录
+     * @deprecated (ctp 不支持)
+     * @param user 用户
+     * @return 用户id
      */
-    public String logout() throws MyException, InvocationTargetException, NoSuchMethodException, IllegalAccessException, InterruptedException {
-        if (!getIsLogin()) {
-            return "logout success";
-        }
+    public String logout(UserConfig user) {
         Ctp<String> ctp = new Ctp<>();
-        ctp.setId(0);
-        String userId = ctp.request(requestId -> {
+        return ctp.request(id -> {
             CThostFtdcUserLogoutField field = new CThostFtdcUserLogoutField();
-            UserConfig user = appConfig.getUser();
             field.setBrokerID(user.getBrokerId());
             field.setUserID(user.getUserId());
-            return mdApi.ReqUserLogout(field, requestId);
+            return mdApi.ReqUserLogout(field, id);
         });
-        isLogin = false;
-        return userId;
+    }
+
+    /**
+     * api state
+     * @return state
+     */
+    public ApiState state() {
+        ApiState state = new ApiState();
+        state.setFronts(MdService.fronts);
+        state.setFrontState(MdService.getConnectState());
+        state.setUser(MdService.user);
+        state.setLoginState(MdService.loginState);
+        return state;
     }
 
     /**
      * ctp 订阅合约
      */
-    public void subscribe(List<String> instruments) {
+    public List<String> subscribe(List<String> instruments) {
         log.info("行情订阅开始");
         if (instruments == null || instruments.isEmpty()) {
             log.warn("行情订阅: 没有订阅合约，跳过订阅");
-            return;
+            return instruments;
         }
         // 订阅
         instruments = instruments.stream().distinct().collect(Collectors.toList());
@@ -136,6 +231,8 @@ public class MarketService {
         if (!appConfig.getSchedule().getSaveQuotation()) {
             log.info("行情订阅 {} 条, 行情保存关闭", ids.length);
         }
+
+        return instruments;
     }
 
     /**

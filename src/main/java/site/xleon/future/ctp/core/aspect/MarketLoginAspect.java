@@ -3,10 +3,10 @@ package site.xleon.future.ctp.core.aspect;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.xleon.future.ctp.core.MyException;
-import site.xleon.future.ctp.services.impl.MarketService;
+import site.xleon.future.ctp.core.enums.StateEnum;
+import site.xleon.future.ctp.services.impl.MdService;
 
 /**
  *
@@ -14,27 +14,43 @@ import site.xleon.future.ctp.services.impl.MarketService;
 @Aspect
 @Component
 public class MarketLoginAspect {
+    /**
+     * 前置检查
+     */
+    @Pointcut("within(site.xleon.future.ctp.services.impl.MdService)")
+    public void marketNeedFront() {
+    }
 
-    @Autowired
-    private MarketService marketService;
+    @Pointcut("execution(* site.xleon.future.ctp.services.impl.MdService.state())")
+    public void marketNoNeedFront() {
+    }
 
-    @Pointcut("within(site.xleon.future.ctp.services.impl.MarketService)")
+    @Pointcut("within(site.xleon.future.ctp.services.impl.MdService)")
     public void needLogin() {
     }
 
-    @Pointcut("execution(* site.xleon.future.ctp.services.impl.MarketService.auth()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.get*(..)) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.set*(..)) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.login()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.logout()) || " +
-            "execution(* site.xleon.future.ctp.services.impl.MarketService.download())")
+    @Pointcut("execution(* site.xleon.future.ctp.services.impl.MdService.auth()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MdService.login(..)) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MdService.state()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.MdService.download())")
     public void noNeedLogin() {
     }
 
-    @Before("needLogin() && !noNeedLogin()")
+    @Before("marketNeedFront() && !marketNoNeedFront()")
     public void before() throws MyException {
-        if (!marketService.getIsLogin()) {
-            throw new MyException("请先登录行情");
+        if (StateEnum.SUCCESS != MdService.getConnectState()) {
+            throw new MyException("行情前置尚未连接: " + MdService.getConnectState());
+        }
+    }
+
+    @Before("needLogin() && !noNeedLogin()")
+    public void beforeLogin() throws MyException {
+        if (StateEnum.SUCCESS != MdService.getConnectState()) {
+            throw new MyException("行情前置尚未连接: " + MdService.getConnectState());
+        }
+
+        if (StateEnum.SUCCESS != MdService.getLoginState()) {
+            throw new MyException("行情用户尚未登录: " + MdService.getLoginState());
         }
     }
 }

@@ -7,7 +7,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import site.xleon.future.ctp.config.CtpInfo;
 import site.xleon.future.ctp.core.utils.CompressUtils;
 import site.xleon.future.ctp.models.TradingEntity;
 
@@ -50,9 +49,6 @@ public class DataService {
      * 年交易日
      */
     public static final String TRADING_DAY = "tradingDay";
-
-    @Autowired
-    private CtpInfo ctpInfo;
 
     /**
      * 交易日合约市场信息
@@ -160,14 +156,14 @@ public class DataService {
         for (File item :
                 files) {
             // 是目录且不是当天交易日目录
-            if (item.isDirectory() && !item.getName().equals(ctpInfo.getTradingDay())) {
-                log.info("auto compress dir {}", item.getName());
-                log.info("{} compress start", item.getName());
-                CompressUtils.tar(item.toPath(), Paths.get("data", item.getName() + ".tar.gz"));
-                log.info("{} compress end", item.getName());
-                FileUtils.deleteDirectory(item);
-                log.info("{} deleted", item.getName());
-            }
+//            if (item.isDirectory() && !item.getName().equals(ctpInfo.getTradingDay())) {
+//                log.info("auto compress dir {}", item.getName());
+//                log.info("{} compress start", item.getName());
+//                CompressUtils.tar(item.toPath(), Paths.get("data", item.getName() + ".tar.gz"));
+//                log.info("{} compress end", item.getName());
+//                FileUtils.deleteDirectory(item);
+//                log.info("{} deleted", item.getName());
+//            }
         }
     }
 

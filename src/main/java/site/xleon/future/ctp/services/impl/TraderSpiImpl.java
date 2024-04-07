@@ -1,13 +1,11 @@
 package site.xleon.future.ctp.services.impl;
 
-import site.xleon.future.ctp.config.CtpInfo;
+import site.xleon.future.ctp.core.enums.StateEnum;
 import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.Ctp;
 import ctp.thosttraderapi.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,58 +14,49 @@ import java.util.List;
  * 交易
  */
 @Slf4j
-@Component
 @Data
 public class TraderSpiImpl extends CThostFtdcTraderSpi {
-
-    @Autowired
-    private CtpInfo ctpInfo;
-    @Autowired
-    private TradeService tradeService;
-    @Autowired
-    private DataService dataService;
-
     @Override
     public void OnRspError(CThostFtdcRspInfoField rspInfoField, int requestID, boolean isLast) {
-        log.error("request {} error {}: {}", requestID, rspInfoField.getErrorID(), rspInfoField.getErrorMsg());
+        log.error("OnRspError {}: error {}: {}", requestID, rspInfoField.getErrorID(), rspInfoField.getErrorMsg());
     }
 
     /**
      * 客户端与交易托管连接成功（还未登录）
      */
     @Override
-    public void OnFrontConnected(){
-        log.info("交易前置连接成功");
-        tradeService.setIsConnected(true);
-        tradeService.setIsLogin(false);
-        new Thread(()-> {
-            try {
-                tradeService.login();
-            } catch (Exception e) {
-                log.error("交易登录失败: {}", e.getMessage());
-                tradeService.setIsLogin(false);
-            }
-
-        }).start();
+    public void OnFrontConnected() {
+        log.info("交易前置连接成功 {}: connected", TradeService.getFronts());
+        TradeService.notifyConnected(StateEnum.SUCCESS);
     }
 
     /**
      * 客户端与交易托管连接断开
+     *
      * @param nReason 原因
+     * @apiNote 当客户端与交易托管系统通信连接断开时，该方法被调用。
+     * 当发生这个情况后，API会自动重新连接，客户端可不做处理。
+     * 自动重连地址，可能是原来注册的地址，也可能是系统支持的其它可用的通信地址，它由程序自动选择。
+     * 注:重连之后需要重新认证、登录
      */
     @Override
-    public  void OnFrontDisconnected(int nReason) {
-        log.error("front disconnected: {}", nReason);
-        tradeService.setIsConnected(false);
-        tradeService.setIsLogin(false);
+    public void OnFrontDisconnected(int nReason) {
+        TradeService.notifyConnected(StateEnum.byReason(nReason));
+        log.error("交易前置断开: {}", StateEnum.byReason(nReason).getLabel());
+    }
+
+    @Override
+    public void OnHeartBeatWarning(int nTimeLapse) {
+        log.error("heart beat over time: {}", nTimeLapse);
     }
 
     /**
      * 鉴权
+     *
      * @param pRspAuthenticateField auth field
-     * @param pRspInfo res info
-     * @param nRequestID request id
-     * @param bIsLast is last
+     * @param pRspInfo              res info
+     * @param nRequestID            request id
+     * @param bIsLast               is last
      */
     @Override
     public void OnRspAuthenticate(CThostFtdcRspAuthenticateField pRspAuthenticateField,
@@ -81,16 +70,35 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
 
     /**
      * 登录响应
+     *
      * @param pRspUserLogin response login
-     * @param pRspInfo response info
-     * @param nRequestID request id
-     * @param bIsLast is last
+     * @param pRspInfo      response info
+     * @param nRequestID    request id
+     * @param bIsLast       is last
      */
     @Override
-    public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast)
-    {
+    public void OnRspUserLogin(
+            CThostFtdcRspUserLoginField pRspUserLogin,
+            CThostFtdcRspInfoField pRspInfo,
+            int nRequestID,
+            boolean bIsLast) {
+        log.info("登录响应 {}: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        TradeService.notifyLogin(StateEnum.SUCCESS);
         Ctp.get(nRequestID)
                 .append(response -> pRspUserLogin.getUserID())
+                .finish(pRspInfo, bIsLast);
+    }
+
+    @Override
+    public void OnRspUserLogout(
+            CThostFtdcUserLogoutField pRspUserLogout,
+            CThostFtdcRspInfoField pRspInfo,
+            int nRequestID,
+            boolean bIsLast) {
+        log.info("user {}: logout {}, {}, {}", pRspUserLogout.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        TradeService.notifyLogin(StateEnum.DISCONNECT);
+        Ctp.get(nRequestID)
+                .append(response -> pRspUserLogout.getUserID())
                 .finish(pRspInfo, bIsLast);
     }
 
@@ -103,17 +111,18 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
 
     /**
      * 查询合约响应
+     *
      * @param instrumentField 合约
-     * @param infoField 响应信息
-     * @param requestId 请求id
-     * @param isLast 是否最后一条
+     * @param infoField       响应信息
+     * @param requestId       请求id
+     * @param isLast          是否最后一条
      */
     @Override
     public void OnRspQryInstrument(CThostFtdcInstrumentField instrumentField, CThostFtdcRspInfoField infoField, int requestId, boolean isLast) {
 //        log.info("instrument: {}", instrumentField.getInstrumentID());
         Ctp.get(requestId)
                 .append(response -> {
-                    List<InstrumentEntity> instruments = (List<InstrumentEntity>)response;
+                    List<InstrumentEntity> instruments = (List<InstrumentEntity>) response;
                     if (instruments == null) {
                         instruments = new ArrayList<>();
                     }

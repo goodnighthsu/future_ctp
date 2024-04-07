@@ -2,11 +2,11 @@ package site.xleon.future.ctp.services;
 
 import ctp.thosttraderapi.CThostFtdcRspInfoField;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import site.xleon.future.ctp.core.IMyFunction;
 import site.xleon.future.ctp.core.MyException;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -47,9 +47,9 @@ public class Ctp<T> {
     /**
      * 发起请求
      */
-    public T request(IMyFunction<Integer, Integer>function) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, MyException, InterruptedException {
-        log.info("request {} {} create", id, function.getMethodName());
-
+    @SneakyThrows
+    public T request(IMyFunction<Integer, Integer>function) {
+        log.debug("request {} {} create", id, function.getMethodName());
         Ctp<Object> oldRequest = REQUESTS.get(id);
         if (oldRequest != null) {
             throw new MyException("请求已存在");
@@ -74,8 +74,8 @@ public class Ctp<T> {
             // 等待响应
             lock.wait(timeout);
             REQUESTS.remove(id);
-            if (errorId == -999 && response == null) {
-                log.error("request {} timeout", id);
+            if (errorId == -999) {
+                log.error("request {} {} timeout", function.getMethodName(), id);
                 throw new MyException("请求超时");
             }
 
@@ -83,7 +83,7 @@ public class Ctp<T> {
                 throw new MyException("request(" + id + ") error: code(" + errorId + "), " + getErrorMsg());
             }
 
-            log.info("request({}), finish", id);
+            log.debug("request({}), finish", id);
             return this.response;
         }
     }
@@ -96,7 +96,7 @@ public class Ctp<T> {
     public static Ctp<Object> get(int nRequestID) {
         Ctp<Object> request =  REQUESTS.get(nRequestID);
         if (request == null) {
-            log.error("request {} not found", nRequestID);
+//            log.error("request {} not found", nRequestID);
             request = new Ctp<>();
             request.reject = true;
         }
@@ -131,7 +131,7 @@ public class Ctp<T> {
 
         if (isFinish) {
             if (infoField != null && infoField.getErrorID() != 0) {
-                log.info("request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
+                log.debug("ctp finish request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
                 setErrorId(infoField.getErrorID());
                 setErrorMsg(infoField.getErrorMsg());
             }else {
@@ -155,7 +155,7 @@ public class Ctp<T> {
 
         if (isFinish) {
             if (infoField != null && infoField.getErrorID() != 0) {
-                log.info("request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
+                log.error("request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
                 setErrorId(infoField.getErrorID());
                 setErrorMsg(infoField.getErrorMsg());
             }else {

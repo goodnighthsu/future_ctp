@@ -3,6 +3,7 @@ package site.xleon.future.ctp.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.http.HttpStatus;
+import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.Result;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -43,6 +44,9 @@ public class DefaultExceptionHandler extends BasicErrorController {
         }
 
         String message = (String) body.get("message");
+        if (message.equals("No message available")) {
+            message = error;
+        }
         Result<String> result = Result.fail(message);
         Map<String, Object> map = JSONObject.parseObject(JSON.toJSONString(result), HashMap.class);
         log.error("{}", map);
@@ -50,13 +54,17 @@ public class DefaultExceptionHandler extends BasicErrorController {
         return new ResponseEntity<>(map, HttpStatus.OK);
     }
 
-//    @ResponseBody
-//    @ExceptionHandler
-//    public Result<String> defaultException(HttpServletRequest request, Exception exception) {
-//        if (exception instanceof UndeclaredThrowableException) {
-//            Throwable e  = ((UndeclaredThrowableException) exception).getUndeclaredThrowable();
-//            return Result.fail(e.getMessage());
-//        }
-//        return Result.fail(exception.getMessage());
-//    }
+    @ResponseBody
+    @ExceptionHandler
+    public Result<String> defaultException(HttpServletRequest request, Exception exception) {
+        if(exception instanceof MyException) {
+            return  Result.fail(exception.getMessage());
+        }
+
+        if (exception instanceof UndeclaredThrowableException) {
+            Throwable e  = ((UndeclaredThrowableException) exception).getUndeclaredThrowable();
+            return Result.fail(e.getMessage());
+        }
+        return Result.fail(exception.getMessage());
+    }
 }

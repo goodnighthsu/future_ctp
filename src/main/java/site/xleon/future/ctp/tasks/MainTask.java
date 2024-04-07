@@ -1,118 +1,36 @@
 package site.xleon.future.ctp.tasks;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
-import site.xleon.future.ctp.config.CtpInfo;
-import site.xleon.future.ctp.config.app_config.AppConfig;
-import site.xleon.future.ctp.models.InstrumentEntity;
-import site.xleon.future.ctp.services.impl.MarketService;
-import site.xleon.future.ctp.services.impl.TradeService;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-@Configuration
+@Component
 @Slf4j
+@AllArgsConstructor(onConstructor_ = {@Autowired})
 public class MainTask {
 
-    @Autowired
-    private ApplicationContext context;
-
-    @Autowired
-    private AppConfig appConfig;
-
-    @Autowired
     private MarketTask marketTask;
 
-    @Autowired
-    private TraderTask traderTask;
+    private TradeTask tradeTask;
 
-    /**
-     * 行情服务
-     */
-    @Autowired
-    private MarketService marketService;
-
-    /**
-     * 交易服务
-     */
-    @Autowired
-    private TradeService tradeService;
 
     @Bean
-    public ExecutorService executorService() {
-        init();
-
-        ThreadFactory threadFactory = new CustomizableThreadFactory("mainPool-");
-        ExecutorService executor = new ThreadPoolExecutor(
-                3,
-                3,
-                0L,
-                TimeUnit.SECONDS,
-                new LinkedBlockingDeque<>(),
+    private void init() throws InterruptedException {
+        CustomizableThreadFactory threadFactory = new CustomizableThreadFactory();
+        threadFactory.setThreadNamePrefix("Task");
+        Executor executor = Executors.newFixedThreadPool(2,
                 threadFactory
         );
-
-        Thread autScribeThread = new Thread(this::autoScribe);
-
+        // trade task
+        executor.execute(tradeTask);
+        Thread.sleep(3000);
+        // market task
         executor.execute(marketTask);
-        executor.execute(traderTask);
-        executor.execute(autScribeThread);
-
-        return executor;
-    }
-
-    /**
-     * 配置init
-     */
-    private void init() {
-        if (!appConfig.getHistoryPath().toFile().exists()) {
-            boolean isSuccess = appConfig.getHistoryPath().toFile().mkdirs();
-            if(!isSuccess) {
-                log.error("init: create history directory failure");
-                SpringApplication.exit(context, () -> 0);
-            }
-        }
-    }
-
-    /**
-     * 自动订阅
-     */
-    public void autoScribe() {
-        while (true) {
-            // 订阅登录状态变更
-            synchronized (CtpInfo.loginLock) {
-                try {
-                    log.info("订阅登录状态");
-                    CtpInfo.loginLock.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                // sim now交易服务经常不成功，使用本地订阅文件订阅所有行情
-                try {
-                    if (tradeService.getIsLogin()) {
-                        // 交易登录成功， 更新合约信息库
-                        tradeService.updateInstrument();
-                    }
-
-                    if (!marketService.getIsLogin()) {
-                        log.warn("自动订阅失败: 行情服务未登录");
-                        continue;
-                    }
-                    List<String> subscribes = tradeService.listTrading().stream()
-                            .map(InstrumentEntity::getInstrumentID).collect(Collectors.toList());
-                    marketService.subscribe(subscribes);
-                } catch (Exception e) {
-                    log.error("自动订阅失败: {}", e.getMessage());
-                }
-            }
-        }
     }
 }
