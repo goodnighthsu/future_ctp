@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.commons.models.Result;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.models.HistoryModel;
-import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.services.impl.DataService;
 import site.xleon.future.ctp.services.impl.MdService;
 

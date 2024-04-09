@@ -67,10 +67,7 @@ public class BaseEntity {
     /**
      * logic delete flag
      */
-    private Boolean flag;
-
-
-
+//    private Boolean flag;
 
     /**
      * 表名

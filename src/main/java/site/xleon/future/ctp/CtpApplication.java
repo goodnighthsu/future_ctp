@@ -11,7 +11,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Slf4j
 @SpringBootApplication
 @EnableScheduling
-@EnableFeignClients
+@EnableFeignClients(
+        basePackages = {
+                "site.xleon.commons.**",
+                "site.xleon.future.ctp.services.**"
+        }
+)
 public class CtpApplication {
 
     static {

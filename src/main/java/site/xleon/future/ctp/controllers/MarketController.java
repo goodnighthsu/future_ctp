@@ -10,10 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.commons.models.Result;
 import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.core.enums.StateEnum;
 import site.xleon.future.ctp.models.ApiState;
-import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.utils.Utils;
 import site.xleon.future.ctp.models.InstrumentEntity;
@@ -262,7 +262,7 @@ public class MarketController {
      * @return 合约
      */
     @GetMapping("/instruments")
-    public Result<List<InstrumentEntity>> instruments(
+    public Result<Page<InstrumentEntity>> instruments(
             @RequestParam(required = false) Integer idMin,
             @RequestParam(required = false) Integer idMax,
             @RequestParam(required = false) String instrumentName,
@@ -302,7 +302,7 @@ public class MarketController {
 
         Page<InstrumentEntity> instruments = instrumentMapper.selectPage(paging, query);
 
-        return Result.page(instruments);
+        return Result.success(instruments);
     }
 
     /**

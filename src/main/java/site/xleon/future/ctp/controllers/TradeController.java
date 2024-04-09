@@ -1,27 +1,33 @@
 package site.xleon.future.ctp.controllers;
 
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.commons.models.Result;
 import site.xleon.future.ctp.config.app_config.UserConfig;
 import site.xleon.future.ctp.core.enums.StateEnum;
 import site.xleon.future.ctp.models.ApiState;
 import site.xleon.future.ctp.models.InstrumentEntity;
-import site.xleon.future.ctp.models.Result;
 import site.xleon.future.ctp.services.impl.TradeService;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/trade")
+@AllArgsConstructor
 public class TradeController {
-    @Autowired
-    private TradeService tradeService;
+
+    private final TradeService tradeService;
+
+    // 微服务调用demo
+//    private final PlatformService platformService;
 
     @GetMapping("/state")
     public Result<ApiState> state() {
+        // 微服务调用demo
+//        Result<Object> result = platformService.commonList();
         return Result.success(tradeService.state());
     }
 

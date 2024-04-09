@@ -7,9 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.web.bind.annotation.*;
+import site.xleon.commons.models.Result;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.cql.CommonParam;
-import site.xleon.future.ctp.models.Result;
 
 @Slf4j
 @RestController
