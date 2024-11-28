@@ -109,7 +109,7 @@ public class MdService {
      * @param fronts 前置地址数组 eg: ["tcp://180.169.75.18:61213"]
      * @return 连接状态
      */
-    public static StateEnum setFronts(List<String> fronts) throws InterruptedException, MyException {
+    public static StateEnum connectFronts(List<String> fronts) throws InterruptedException, MyException {
         MdService.fronts = fronts;
         connectState = StateEnum.DISCONNECT;
         loginState = StateEnum.DISCONNECT;
@@ -130,7 +130,7 @@ public class MdService {
                 connectLock.wait(6000);
                 // 超时退出
                 if (StateEnum.DISCONNECT == connectState) {
-                    throw new MyException(StateEnum.TIMEOUT.getLabel());
+                    throw new MyException(StateEnum.TIMEOUT);
                 }
             }
         }

@@ -1,5 +1,5 @@
 package site.xleon.future.ctp.tasks;
-
+;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import site.xleon.future.ctp.config.app_config.AppConfig;
@@ -14,6 +14,12 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * 创建交易日history、flow目录
+ * 监控交易前置登录状态
+ * 没有登录 -> 自动登录
+ * 已登录 -> 更新合约信息
+ */
 @Data
 @Component
 @Slf4j
@@ -29,12 +35,17 @@ public class TradeTask implements Runnable {
 
     public void run() {
         Thread.currentThread().setName("TradeTask");
+        // 创建交易日history、flow目录
         init();
-        autoScribe();
+        // 登录交易前置
+        connectAndLogin();
+        // 监控登录状态
+        monitorLogin();
     }
 
     /**
      * 配置init
+     * 创建交易日目录history
      */
     private void init() {
         if (!appConfig.getHistoryPath().toFile().exists()) {
@@ -53,46 +64,60 @@ public class TradeTask implements Runnable {
     }
 
     /**
-     * 交易自动登录，更新所有合约信息
+     * 更新合约信息
      */
-    public void autoScribe() {
+    public void updateInstruments() {
+        log.info("更新所有合约信息:");
+        List<InstrumentEntity> instrumentEntities = tradeService.listInstruments(null);
+        tradeService.updateInstrument(instrumentEntities);
+    }
+
+    /**
+     * 连接交易前置并登录
+     */
+    public void connectAndLogin() {
         try {
-            log.info("配置交易前置 {}", appConfig.getTraderFronts());
-            TradeService.setFronts(appConfig.getTraderFronts());
-            log.info("交易自动登录: {}", appConfig.getUser().getUserId());
-            tradeService.login(appConfig.getUser());
-            // 登录成功
-            log.info("更新所有合约信息:");
-            List<InstrumentEntity> instrumentEntities = tradeService.listInstruments(null);
-            tradeService.updateInstrument(instrumentEntities);
+            log.info("交易前置 {} 连接", appConfig.getTraderFronts());
+            TradeService.connectFronts(appConfig.getTraderFronts());
         } catch (Exception e) {
-            log.error("合约订阅失败: ", e);
-        } finally {
-            // 断线或退出登录，等待3秒后自动重新发起
-            monitorLogin();
+            log.warn("交易前置 {} 连接失败", appConfig.getMarketFronts());
+            return;
+        }
+
+        try {
+            log.info("交易前置，用户 {} 登录 ", appConfig.getUser().getUserId());
+            tradeService.login(appConfig.getUser());
+        } catch (Exception e) {
+            log.info("交易前置，用户 {} 登录失败", appConfig.getUser().getUserId());
         }
     }
 
+    /**
+     * 监控交易前置登录状态变更
+     * 交易前置
+     * 没有登录 -> 自动登录
+     * 已登录 -> 更新合约信息
+     */
     public void monitorLogin() {
-        // 监控退出登录
+        // 监控交易登录状态
         synchronized (TradeService.loginLock) {
-            while (StateEnum.SUCCESS == TradeService.getLoginState()) {
+            log.info("交易前置 监控登录状态");
+            while (true) {
+                log.info("交易前置 登录状态变更: {} ", TradeService.getLoginState());
                 try {
-                    log.info("监控交易登录状态");
+                    if (TradeService.getLoginState() != StateEnum.SUCCESS) {
+                        // 没有登录
+                        Thread.sleep(12000);
+                        new Thread(this::connectAndLogin).start();
+                    } else {
+                        // 登录成功
+                        updateInstruments();
+                    }
                     TradeService.loginLock.wait();
-                } catch (InterruptedException e) {
-                    log.error("interrupt: ", e);
+                } catch (Exception e) {
+                    log.error("error: ", e);
                 }
             }
         }
-
-        log.info("交易用户退出登录,6s后尝试重新开始更新合约任务");
-        try {
-            Thread.sleep(6000);
-        } catch (InterruptedException e) {
-            log.error("interrupt: ", e);
-        }
-        //
-        autoScribe();
     }
 }

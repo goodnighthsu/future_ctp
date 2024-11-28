@@ -44,10 +44,11 @@ public class TradeService {
     }
 
     public static final Object loginLock = new Object();
+    public static final Object onLoginStateChange = new Object();
     /**
      * 用户是否登录
      */
-    private static volatile StateEnum loginState = StateEnum.DISCONNECT;
+    public static volatile StateEnum loginState = StateEnum.DISCONNECT;
     public static StateEnum getLoginState() {
         synchronized (loginLock){
             return loginState;
@@ -69,7 +70,7 @@ public class TradeService {
     /**
      * 交易api
      */
-    private static CThostFtdcTraderApi traderApi;
+    public static CThostFtdcTraderApi traderApi;
     static {
         traderApi = CThostFtdcTraderApi.CreateFtdcTraderApi("flow" + File.separator);
         traderSpi = new TraderSpiImpl();
@@ -96,11 +97,11 @@ public class TradeService {
         return fronts;
     }
     /**
-     * 重置前置连接
+     * 连接交易前置
      * @param fronts 前置地址数组 eg: ["tcp://218.202.237.33:10203"]
      * @return 连接状态
      */
-    public static StateEnum setFronts(List<String> fronts) throws MyException, InterruptedException {
+    public static StateEnum connectFronts(List<String> fronts) throws MyException, InterruptedException {
         TradeService.fronts = fronts;
         connectState = StateEnum.DISCONNECT;
         loginState = StateEnum.DISCONNECT;
@@ -123,7 +124,7 @@ public class TradeService {
                 connectLock.wait(6000);
                 // 超时退出
                 if (StateEnum.DISCONNECT == connectState) {
-                    throw new MyException(StateEnum.TIMEOUT.getLabel());
+                    throw new MyException(StateEnum.TIMEOUT);
                 }
             }
         }
@@ -237,13 +238,13 @@ public class TradeService {
             }
         }
 
-        log.info("{}条新合约", adds.size());
+        log.info("{} 条新合约", adds.size());
         if (!adds.isEmpty() ) {
             instrumentService.saveBatch(adds);
             log.info("新合约保存成功");
         }
 
-        log.info("{}条合约状态更新", updates.size());
+        log.info("{} 条合约状态更新", updates.size());
         if (!updates.isEmpty()) {
             instrumentService.updateBatchById(updates);
             log.info("合约更新成功");

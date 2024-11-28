@@ -29,7 +29,7 @@ public class MainTask {
         );
         // trade task
         executor.execute(tradeTask);
-        Thread.sleep(3000);
+        Thread.sleep(6000);
         // market task
         executor.execute(marketTask);
     }

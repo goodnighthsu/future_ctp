@@ -13,6 +13,11 @@ import site.xleon.future.ctp.services.impl.TradeService;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 监控行情前置登录状态
+ * 没有登录 -> 自动登录
+ * 已登录 -> 订阅行情
+ */
 @Data
 @Component
 @Slf4j
@@ -24,61 +29,68 @@ public class MarketTask implements Runnable {
     private MdService mdService;
 
     @Autowired
-    TradeService tradeService;
+    private TradeService tradeService;
 
     @Override
     public void run() {
         Thread.currentThread().setName("MarketTask");
-        autoScribe();
+        connectAndLogin();
+        monitor();
     }
 
     /**
      * 行情自动订阅
      */
-    public void autoScribe() {
+    public void instrumentScribe() {
+        List<InstrumentEntity> instrumentEntities = tradeService.listInstruments(null);
+        List<String> instruments = instrumentEntities.stream()
+                .map(InstrumentEntity::getInstrumentID)
+                .collect(Collectors.toList());
+        log.info("行情订阅所有交易合约: {} 条", instruments.size());
+        mdService.subscribe(instruments);
+    }
+
+    /**
+     * 连接交易前置并登录
+     */
+    public void connectAndLogin() {
         try {
-            log.info("配置行情前置 {}", appConfig.getMarketFronts());
-            MdService.setFronts(appConfig.getMarketFronts());
-            log.info("行情自动登录: {}", appConfig.getUser().getUserId());
-            mdService.login(appConfig.getUser());
-            // 登录成功
-            List<InstrumentEntity> instrumentEntities = tradeService.listTradings();
-            List<String> instruments = instrumentEntities.stream()
-                    .map(InstrumentEntity::getInstrumentID)
-                    .collect(Collectors.toList());
-            log.info("订阅所有交易合约: {}条", instruments.size());
-            mdService.subscribe(instruments);
+            log.info("行情前置 {} 连接", appConfig.getMarketFronts());
+            MdService.connectFronts(appConfig.getMarketFronts());
         } catch (Exception e) {
-            log.error("行情订阅失败: ", e);
-        } finally {
-            // 断线或退出登录，等待3秒后自动重新发起
-            monitor();
+            log.warn("行情前置 {} 连接失败", appConfig.getMarketFronts());
+            return;
+        }
+
+        try {
+            log.info("行情前置，用户 {} 登录: ", appConfig.getUser().getUserId());
+            mdService.login(appConfig.getUser());
+        } catch (Exception e) {
+            log.info("行情前置，用户 {} 登录失败", appConfig.getUser().getUserId());
         }
     }
 
     public void monitor() {
-        // 监控退出登录
         synchronized (MdService.loginLock) {
-            while (StateEnum.SUCCESS == MdService.getConnectState()) {
+            log.info("行情前置 监控登录状态");
+            while (true) {
+                log.info("行情前置 登录状态变更: {} ", MdService.getLoginState());
                 try {
-                    log.info("监控行情登录状态");
+                    if (MdService.getLoginState() != StateEnum.SUCCESS) {
+                        // 没有登录
+                        Thread.sleep(12000);
+                        new Thread(this::connectAndLogin).start();
+                    }
+                    if(MdService.getLoginState() == StateEnum.SUCCESS) {
+                        // 行情交易前置和交易前置都登录成功, 订阅合约
+                        Thread.sleep(3000);
+                        instrumentScribe();
+                    }
                     MdService.loginLock.wait();
-                } catch (InterruptedException e) {
-                    log.error("interrupt: ",e);
-                }
-
-                if (StateEnum.SUCCESS != MdService.getLoginState()) {
-                    break;
+                } catch (Exception e) {
+                    log.error("error: ", e);
                 }
             }
         }
-
-        log.info("行情用户退出登录, 6s后尝试重新开始更新合约任务");
-        try {
-            Thread.sleep(6000);
-        } catch (InterruptedException e) {
-            log.error("interrupt: ", e);
-        }
-        autoScribe();
     }
 }

@@ -11,7 +11,11 @@ spring:
       discovery:
 #        metadata: {tag: "dev"}
   application:
-#        name: ctp
     name: ctpslave
   profiles:
     active: devhome
+
+#logging:
+  #   level:
+  #     site.xleon.future.ctp.services.mapper: debug
+#   config: classpath:logback-spring.xml

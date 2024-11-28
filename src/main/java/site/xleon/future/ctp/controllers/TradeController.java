@@ -45,7 +45,7 @@ public class TradeController {
     }
 
     /**
-     * 注册交易前置
+     * 连接交易前置
      * @param fronts 交易前置
      * @return 交易前置
      */
@@ -53,7 +53,7 @@ public class TradeController {
     @PostMapping("/registerFront")
     public Result<String> front(
             @RequestBody List<String> fronts) {
-        StateEnum state = TradeService.setFronts(fronts);
+        StateEnum state = TradeService.connectFronts(fronts);
         return Result.success(state.getLabel());
     }
 

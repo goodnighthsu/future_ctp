@@ -26,7 +26,7 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
      */
     @Override
     public void OnFrontConnected() {
-        log.info("交易前置连接成功 {}: connected", TradeService.getFronts());
+        log.info("交易前置 {}, 连接成功", TradeService.getFronts());
         TradeService.notifyConnected(StateEnum.SUCCESS);
     }
 
@@ -42,7 +42,8 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
     @Override
     public void OnFrontDisconnected(int nReason) {
         TradeService.notifyConnected(StateEnum.byReason(nReason));
-        log.error("交易前置断开: {}", StateEnum.byReason(nReason).getLabel());
+        TradeService.notifyLogin(StateEnum.DISCONNECT);
+        log.warn("交易前置断开: {}", StateEnum.byReason(nReason).getLabel());
     }
 
     @Override
@@ -82,10 +83,16 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
             CThostFtdcRspInfoField pRspInfo,
             int nRequestID,
             boolean bIsLast) {
-        log.info("登录响应 {}: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
-        TradeService.notifyLogin(StateEnum.SUCCESS);
+        log.info("交易前置，用户 {} 登录响应: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        if (pRspInfo.getErrorID() == 0) {
+            TradeService.notifyLogin(StateEnum.SUCCESS);
+        } else {
+            TradeService.notifyLogin(StateEnum.DISCONNECT);
+        }
         Ctp.get(nRequestID)
-                .append(response -> pRspUserLogin.getUserID())
+                .append(response ->
+                        pRspUserLogin.getUserID()
+                )
                 .finish(pRspInfo, bIsLast);
     }
 
@@ -176,5 +183,4 @@ public class TraderSpiImpl extends CThostFtdcTraderSpi {
                 })
                 .finish(infoField, isLast);
     }
-
 }

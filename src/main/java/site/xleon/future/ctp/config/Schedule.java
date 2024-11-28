@@ -33,9 +33,9 @@ public class Schedule {
     /**
      * 交易自动登录
      */
-    @Async
-    @Scheduled(cron = "0 50 8,20 * * MON-FRI")
-    public void autoTradeLogin() {
+//    @Async
+//    @Scheduled(cron = "0 50 8,20 * * MON-FRI")
+//    public void autoTradeLogin() {
 //        try {
 //            log.info("交易自动登录");
 //            String userId = tradeService.login(config.getUser());
@@ -49,14 +49,14 @@ public class Schedule {
 //            }
 //            autoTradeLogin();
 //        }
-    }
-
-    /**
-     * 行情自动登录
-     */
-    @Async
-    @Scheduled(cron = "0 55 8,20 * * MON-FRI")
-    public void autoMarketLogin() {
+//    }
+//
+//    /**
+//     * 行情自动登录
+//     */
+//    @Async
+//    @Scheduled(cron = "0 55 8,20 * * MON-FRI")
+//    public void autoMarketLogin() {
 //        try {
 //            log.info("行情自动登录");
 //            mdService.login();
@@ -70,38 +70,38 @@ public class Schedule {
 //            }
 //            autoMarketLogin();
 //        }
-    }
-
-    /**
-     * 自动压缩
-     * 压缩非交易日的行情文件到data目录
-     */
-    @Async
-    @Scheduled(cron = "0 0 5 * * ?")
-    public void autoCompress () throws IOException {
-        if (!config.getSchedule().getMarketDataAutoCompress()) {
-            log.info("自动压缩跳过");
-            return;
-        }
-        log.info("自动压缩");
-        dataService.compress();
-        log.info("自动压缩完成");
-    }
-
-    /**
-     * 下载备份的市场行情文件
-     * @apiNote 从主服务器下载压缩的行情文件到backup文件夹，并解压缩到history文件夹，
-     * 解压成功后删除主服务上的压缩文件
-     * @throws MyException
-     * @throws IOException
-     */
-    @Async
-    @Scheduled(cron = "0 0 7 * * ?")
-    public void autoDownload () throws MyException, IOException {
-        if (!config.getSchedule().getDownloadCtpData()) {
-            log.info("行情文件下载跳过");
-            return;
-        }
-       mdService.download();
-    }
+//    }
+//
+//    /**
+//     * 自动压缩
+//     * 压缩非交易日的行情文件到data目录
+//     */
+//    @Async
+//    @Scheduled(cron = "0 0 5 * * ?")
+//    public void autoCompress () throws IOException {
+//        if (!config.getSchedule().getMarketDataAutoCompress()) {
+//            log.info("自动压缩跳过");
+//            return;
+//        }
+//        log.info("自动压缩");
+//        dataService.compress();
+//        log.info("自动压缩完成");
+//    }
+//
+//    /**
+//     * 下载备份的市场行情文件
+//     * @apiNote 从主服务器下载压缩的行情文件到backup文件夹，并解压缩到history文件夹，
+//     * 解压成功后删除主服务上的压缩文件
+//     * @throws MyException
+//     * @throws IOException
+//     */
+//    @Async
+//    @Scheduled(cron = "0 0 7 * * ?")
+//    public void autoDownload () throws MyException, IOException {
+//        if (!config.getSchedule().getDownloadCtpData()) {
+//            log.info("行情文件下载跳过");
+//            return;
+//        }
+//       mdService.download();
+//    }
 }

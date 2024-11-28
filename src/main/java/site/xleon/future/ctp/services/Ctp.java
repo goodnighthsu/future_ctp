@@ -29,7 +29,7 @@ public class Ctp<T> {
      */
     private final Object lock = new Object();
 
-    private int timeout = 6000;
+    private int timeout = 30000;
 
     /**
      * 请求响应
@@ -131,10 +131,10 @@ public class Ctp<T> {
 
         if (isFinish) {
             if (infoField != null && infoField.getErrorID() != 0) {
-                log.debug("ctp finish request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
+                log.error("ctp finish request {} error: {}, {}", id, infoField.getErrorID(), infoField.getErrorMsg());
                 setErrorId(infoField.getErrorID());
                 setErrorMsg(infoField.getErrorMsg());
-            }else {
+            } else {
                 setErrorId(0);
             }
             synchronized (this.getLock()) {

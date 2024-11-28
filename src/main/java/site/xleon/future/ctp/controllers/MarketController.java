@@ -34,6 +34,7 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -91,7 +92,7 @@ public class MarketController {
     @PostMapping("/registerFront")
     public Result<String> front(
             @RequestBody List<String> fronts) {
-        StateEnum state = MdService.setFronts(fronts);
+        StateEnum state = MdService.connectFronts(fronts);
         return Result.success(state.getLabel());
     }
 
@@ -402,5 +403,82 @@ public class MarketController {
                 .limit(100)
                 .collect(Collectors.toList());
         return Result.success(quotes);
+    }
+
+    /**
+     * 行情振幅
+     */
+    @GetMapping("/amplitude")
+    public void amplitude(
+            @RequestParam String tradingDay,
+            @RequestParam String instrumentId,
+            @RequestParam Integer index,
+            @RequestParam Float range
+    ) {
+        List<String> quotes = dataService.readMarket(tradingDay, instrumentId, index);
+
+        String line2 = quotes.get(2);
+        float openPrice = Float.parseFloat(line2.split(",")[10]);
+        log.info("open price: {}", openPrice);
+        // 基准价格
+        float basePrice = openPrice;
+        float aLastPrice = openPrice;
+        // 方向
+        int lastDir = 0;
+        float offset = 0f;
+        int i =  index;
+        float min = Float.MAX_VALUE;
+        float max = 0f;
+
+        List<Float> prices = quotes.stream()
+                .map(item -> {
+                    List<String> lines = Arrays.asList(item.split(","));
+                    return Float.parseFloat(lines.get(6));
+                })
+                .collect(Collectors.toList());
+
+        List<String> records = new ArrayList<>();
+
+        float nodePrice = openPrice;
+        // 振幅精度range, 累计的振幅小于这个不记录
+        for (float price: prices
+             ) {
+            i++;
+            // 本次振幅
+            float tickOffset = price - aLastPrice;
+            offset += tickOffset;
+            // 振幅小于要求的精度，不记录
+            if (Math.abs(tickOffset) < range ) {
+                continue;
+            }
+            float offsetP = tickOffset / openPrice * 100;
+
+            // tick 是涨 1 跌 -1 平0
+            int tickDir = 0;
+            if (tickOffset > 0) {
+                tickDir = 1;
+            }else if (tickOffset < 0) {
+                tickDir = -1;
+            }
+
+            // 和上次方向不一致， 记录振幅
+            if (lastDir != tickDir) {
+                lastDir = tickDir;
+                float aOffset =  aLastPrice - basePrice;
+                String record = String.format("%s-%s-%s", basePrice, aLastPrice, aOffset);
+                records.add(record);
+                basePrice = aLastPrice;
+            }
+
+//            min = Math.min(price, min);
+//            max = Math.max(price, max);
+            aLastPrice = price;
+        }
+
+        log.info("prices size: {}", prices.size());
+        log.info("max: {}", max);
+        log.info("min: {}", min);
+        log.info("records size:  {}", records.size());
+        log.info("records:  {}", records);
     }
 }

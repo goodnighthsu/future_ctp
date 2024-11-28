@@ -41,7 +41,7 @@ public class MdSpiImpl extends CThostFtdcMdSpi {
 
     @Override
     public void OnRspUserLogin(CThostFtdcRspUserLoginField pRspUserLogin, CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
-        log.info("登录响应 {}: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+        log.info("行情登录响应 {}: {}, {}, {}", pRspUserLogin.getUserID(), nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         MdService.notifyLogin(StateEnum.SUCCESS);
         Ctp.get(nRequestID)
                 .append(response -> pRspUserLogin.getUserID())

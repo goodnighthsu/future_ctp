@@ -23,7 +23,8 @@ public class TradeLoginAspect {
     public void tradeNeedFront() {
     }
 
-    @Pointcut("execution(* site.xleon.future.ctp.services.impl.TradeService.state())")
+    @Pointcut("execution(* site.xleon.future.ctp.services.impl.TradeService.state()) || " +
+            "execution(* site.xleon.future.ctp.services.impl.TradeService.listTradings()) ")
     public void tradeNoNeedFront() {
     }
 
