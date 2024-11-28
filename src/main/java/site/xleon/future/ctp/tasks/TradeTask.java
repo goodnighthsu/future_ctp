@@ -38,7 +38,8 @@ public class TradeTask implements Runnable {
         // 创建交易日history、flow目录
         init();
         // 登录交易前置
-        connectAndLogin();
+        connect();
+        login();
         // 监控登录状态
         monitorLogin();
     }
@@ -75,15 +76,16 @@ public class TradeTask implements Runnable {
     /**
      * 连接交易前置并登录
      */
-    public void connectAndLogin() {
+    public void connect() {
         try {
             log.info("交易前置 {} 连接", appConfig.getTraderFronts());
             TradeService.connectFronts(appConfig.getTraderFronts());
         } catch (Exception e) {
             log.warn("交易前置 {} 连接失败", appConfig.getMarketFronts());
-            return;
         }
+    }
 
+    public void login() {
         try {
             log.info("交易前置，用户 {} 登录 ", appConfig.getUser().getUserId());
             tradeService.login(appConfig.getUser());
@@ -91,6 +93,7 @@ public class TradeTask implements Runnable {
             log.info("交易前置，用户 {} 登录失败", appConfig.getUser().getUserId());
         }
     }
+
 
     /**
      * 监控交易前置登录状态变更
@@ -108,7 +111,7 @@ public class TradeTask implements Runnable {
                     if (TradeService.getLoginState() != StateEnum.SUCCESS) {
                         // 没有登录
                         Thread.sleep(12000);
-                        new Thread(this::connectAndLogin).start();
+                        new Thread(this::login).start();
                     } else {
                         // 登录成功
                         updateInstruments();

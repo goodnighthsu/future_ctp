@@ -34,7 +34,8 @@ public class MarketTask implements Runnable {
     @Override
     public void run() {
         Thread.currentThread().setName("MarketTask");
-        connectAndLogin();
+        connect();
+        login();
         monitor();
     }
 
@@ -51,17 +52,21 @@ public class MarketTask implements Runnable {
     }
 
     /**
-     * 连接交易前置并登录
+     * 连接行情前置
      */
-    public void connectAndLogin() {
+    public void connect() {
         try {
             log.info("行情前置 {} 连接", appConfig.getMarketFronts());
             MdService.connectFronts(appConfig.getMarketFronts());
         } catch (Exception e) {
             log.warn("行情前置 {} 连接失败", appConfig.getMarketFronts());
-            return;
         }
+    }
 
+    /**
+     * 登录行情
+     */
+    public void login() {
         try {
             log.info("行情前置，用户 {} 登录: ", appConfig.getUser().getUserId());
             mdService.login(appConfig.getUser());
@@ -79,7 +84,7 @@ public class MarketTask implements Runnable {
                     if (MdService.getLoginState() != StateEnum.SUCCESS) {
                         // 没有登录
                         Thread.sleep(12000);
-                        new Thread(this::connectAndLogin).start();
+                        new Thread(this::login).start();
                     }
                     if(MdService.getLoginState() == StateEnum.SUCCESS) {
                         // 行情交易前置和交易前置都登录成功, 订阅合约
