@@ -1,13 +1,15 @@
 package site.xleon.future.ctp.services.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.ReversedLinesFileReader;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Service;
-import site.xleon.future.ctp.core.utils.CompressUtils;
+import site.xleon.commons.cql.CommonParam;
+import site.xleon.future.ctp.config.MyCommonRelation;
 import site.xleon.future.ctp.models.TradingEntity;
 
 import java.io.File;
@@ -55,6 +57,14 @@ public class DataService {
      */
     private HashMap<String, TradingEntity> quoteCurrent = new HashMap<>();
 
+    private final SqlSessionFactory sqlSessionFactory;
+    private final MyCommonRelation myCommonRelation;
+
+    public <T> Page<T> commons(String jsonString) throws site.xleon.commons.cql.MyException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+        CommonParam param = JSON.parseObject(jsonString, CommonParam.class);
+        return param.query(sqlSessionFactory, myCommonRelation);
+    }
+
     /**
      * init file 文件不存在就创建
      *
@@ -77,7 +87,7 @@ public class DataService {
 
     }
 
-    private void saveJson(Object params, Path path) throws IOException {
+    public void saveJson(Object params, Path path) throws IOException {
         initFile(path);
         Files.write(path, JSON.toJSONBytes(params));
     }

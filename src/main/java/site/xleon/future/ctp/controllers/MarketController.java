@@ -3,10 +3,10 @@ package site.xleon.future.ctp.controllers;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.base.CaseFormat;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
@@ -34,22 +34,17 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RefreshScope
 @RequestMapping("/market")
+@AllArgsConstructor
 public class MarketController {
-    @Autowired
-    private InstrumentMapper instrumentMapper;
-
-    @Autowired
-    private MdService mdService;
-
-    @Autowired
-    private DataService dataService;
+    private final InstrumentMapper instrumentMapper;
+    private final MdService mdService;
+    private final DataService dataService;
 
     /**
      * market api state
@@ -118,6 +113,9 @@ public class MarketController {
 
     /**
      * 年度交易日
+     * @param year 年度
+     * @return 年度交易日
+     * @throws IOException exception
      */
     @GetMapping("/tradingDays")
     public Result<List<String>> tradingDays(

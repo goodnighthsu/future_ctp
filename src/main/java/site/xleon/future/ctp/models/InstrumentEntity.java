@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
-import site.xleon.future.ctp.core.cql.BaseEntity;
+import site.xleon.commons.cql.BaseEntity;
 
 /**
  * 合约信息
@@ -21,7 +21,7 @@ public class InstrumentEntity extends BaseEntity {
     private String exchangeID;
     ///合约名称
     private String instrumentName;
-    ///产品类型
+    ///产品类型 期货 1, 期货期权 2, 组合 3, 即期 4, 期转现 5, 现货期权 6, TAS合约 7, 金属指数 I
     private char productClass;
     ///交割年份
     private int deliveryYear;

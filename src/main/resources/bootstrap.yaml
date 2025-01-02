@@ -9,11 +9,11 @@ spring:
         #       future
         namespace: 24120332-082f-41c1-a66f-bda4905a9811
       discovery:
-#        metadata: {tag: "dev"}
+        metadata: {tag: "dev"}
   application:
-    name: ctpslave
-  profiles:
-    active: devhome
+    name: ctpdev
+#  profiles:
+#    active: dev
 
 #logging:
   #   level:

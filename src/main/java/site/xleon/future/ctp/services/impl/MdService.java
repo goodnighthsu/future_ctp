@@ -88,7 +88,7 @@ public class MdService {
         mdApi.Init();
     }
 
-    private static final Object connectLock = new Object();
+    public static final Object connectLock = new Object();
     /**
      * 前置连接状态
      */

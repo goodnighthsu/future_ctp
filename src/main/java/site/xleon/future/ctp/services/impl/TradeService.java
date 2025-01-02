@@ -1,39 +1,56 @@
 package site.xleon.future.ctp.services.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import ctp.thosttraderapi.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.ibatis.session.SqlSessionFactory;
 import site.xleon.future.ctp.config.app_config.AppConfig;
 import site.xleon.future.ctp.config.app_config.UserConfig;
+import site.xleon.future.ctp.controllers.TradeController;
 import site.xleon.future.ctp.core.MyException;
 import site.xleon.future.ctp.core.enums.StateEnum;
-import site.xleon.future.ctp.models.ApiState;
-import site.xleon.future.ctp.models.InstrumentEntity;
+import site.xleon.future.ctp.models.*;
 import site.xleon.future.ctp.services.Ctp;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.xleon.future.ctp.services.mapper.InstrumentMapper;
 import site.xleon.future.ctp.services.mapper.impl.InstrumentService;
 
 import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service("tradingService")
 @Slf4j
 @Data
-public class TradeService {
-    @Autowired
-    private AppConfig appConfig;
+public class  TradeService {
+    private final AppConfig appConfig;
 
-    @Autowired
-    private InstrumentMapper instrumentMapper;
+    private final InstrumentMapper instrumentMapper;
 
-    @Autowired
-    private InstrumentService instrumentService;
+    private final InstrumentService instrumentService;
 
-    @Autowired
-    private DataService dataService;
+    private final DataService dataService;
+    private final SqlSessionFactory sqlSessionFactory;
+
+    /**
+     * 交易日
+     */
+    private static String tradingDay;
+    public static String getTradingDay() {
+        if (tradingDay != null) {
+            return tradingDay;
+        }
+        TradeService.tradingDay = TradeService.traderApi.GetTradingDay();
+        return TradeService.tradingDay;
+    }
 
     /**
      * 登录用户
@@ -80,7 +97,7 @@ public class TradeService {
         traderApi.Init();
     }
 
-    private static final Object connectLock = new Object();
+    public static final Object connectLock = new Object();
     /**
      * 前置连接状态
      */
@@ -102,33 +119,44 @@ public class TradeService {
      * @return 连接状态
      */
     public static StateEnum connectFronts(List<String> fronts) throws MyException, InterruptedException {
-        TradeService.fronts = fronts;
-        connectState = StateEnum.DISCONNECT;
-        loginState = StateEnum.DISCONNECT;
-        if (traderApi != null) {
-            traderApi.Release();
-        }
-
-        traderApi = CThostFtdcTraderApi.CreateFtdcTraderApi("flow" + File.separator);
-        for (String front: fronts) {
-            traderApi.RegisterFront(front);
-        }
-        traderSpi = new TraderSpiImpl();
-        traderApi.RegisterSpi(traderSpi);
-        traderApi.SubscribePublicTopic(ctp.thosttraderapi.THOST_TE_RESUME_TYPE.THOST_TERT_QUICK);
-        traderApi.SubscribePrivateTopic(ctp.thosttraderapi.THOST_TE_RESUME_TYPE.THOST_TERT_QUICK);
-        traderApi.Init();
-
+        log.info("交易前置 {} 连接", fronts);
         synchronized (connectLock) {
-            while (StateEnum.DISCONNECT == connectState) {
-                connectLock.wait(6000);
-                // 超时退出
-                if (StateEnum.DISCONNECT == connectState) {
-                    throw new MyException(StateEnum.TIMEOUT);
+            log.info("connectLock {} state {}", fronts, TradeService.connectState);
+            if (StateEnum.LOADING == TradeService.connectState) {
+                return TradeService.connectState;
+            }
+//            TradeService.notifyConnected(StateEnum.LOADING);
+            connectState = StateEnum.LOADING;
+            TradeService.fronts = fronts;
+            if (traderApi != null) {
+                traderApi.Release();
+            }
+            if (traderSpi != null) {
+                traderSpi.delete();
+            }
+
+            traderApi = CThostFtdcTraderApi.CreateFtdcTraderApi("flow" + File.separator);
+            for (String front: fronts) {
+                traderApi.RegisterFront(front);
+            }
+            traderSpi = new TraderSpiImpl();
+            traderApi.RegisterSpi(traderSpi);
+            traderApi.SubscribePublicTopic(ctp.thosttraderapi.THOST_TE_RESUME_TYPE.THOST_TERT_QUICK);
+            traderApi.SubscribePrivateTopic(ctp.thosttraderapi.THOST_TE_RESUME_TYPE.THOST_TERT_QUICK);
+            traderApi.Init();
+
+            while (true) {
+                connectLock.wait(3000);
+                if (StateEnum.LOADING == connectState) {
+                    log.warn("交易前置 {} 连接超时", fronts);
+                    TradeService.notifyConnected(StateEnum.DISCONNECT);
+                } else {
+                    TradeService.notifyConnected(connectState);
                 }
+
+                return connectState;
             }
         }
-        return connectState;
     }
 
     /**
@@ -175,6 +203,7 @@ public class TradeService {
      * @return userId
      */
     public String login(UserConfig user) throws MyException {
+        log.info("交易前置，用户 {} 登录 ", user.getUserId());
         if (StateEnum.SUCCESS == TradeService.getLoginState()) {
             throw new MyException("用户已登录，请勿重复登录");
         }
@@ -214,7 +243,7 @@ public class TradeService {
         // 需要新增的
         List<InstrumentEntity> adds = new ArrayList<>();
         // 列出数据库所有在交易的合约
-        List<InstrumentEntity> tradings = instrumentMapper.listTradings();
+        List<InstrumentEntity> tradings = instrumentMapper.listTradings(TradeService.getTradingDay());
         tradings = tradings == null ? new ArrayList<>() : tradings;
         log.info("更新合约状态: {} / {}", instruments.size(), tradings.size());
         for (InstrumentEntity instrument : instruments) {
@@ -256,11 +285,34 @@ public class TradeService {
      * @return Instruments
      */
     public List<InstrumentEntity> listTradings() {
-        return instrumentMapper.listTradings();
+        return instrumentMapper.listTradings(TradeService.getTradingDay());
     }
 
     /**
-     * 查询合约
+     * 所有交易中的期货合约
+     * @return 期货合约
+     */
+    public Page<InstrumentEntity> allTradingFutures() throws site.xleon.commons.cql.MyException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+        String tradingDay = TradeService.getTradingDay();
+
+        String jsonString = "{\n" +
+                "    \"module\": \"instrument\",\n" +
+                "    \"filters\": [\n" +
+                "         {\n" +
+                "            \"key\": \"productClass\",\n" +
+                "            \"values\": [\"1\"]\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"key\": \"expireDate\",\n" +
+                "            \"range\": [" + tradingDay + "]\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
+        return dataService.commons(jsonString);
+    }
+
+    /**
+     * 查询ctp合约
      * @return 合约列表
      */
     public List<InstrumentEntity> listInstruments(String instrument) {
@@ -269,4 +321,119 @@ public class TradeService {
         instrumentField.setInstrumentID(instrument);
         return ctp.request(requestId -> traderApi.ReqQryInstrument(instrumentField, requestId));
     }
+
+    public void listPosition() {
+        Ctp<String> ctp = new Ctp<>();
+        CThostFtdcQryInvestorPositionField positionField = new CThostFtdcQryInvestorPositionField();
+        positionField.setBrokerID(user.getBrokerId());
+        positionField.setInvestorID(user.getUserId());
+        ctp.request(requestId -> traderApi.ReqQryInvestorPosition(positionField, requestId));
+    }
+
+    /**
+     * 查询资金账户
+     */
+    public List<TradingAccountEntity> listAccount() {
+        Ctp<List<TradingAccountEntity>> ctp = new Ctp<>();
+        CThostFtdcQryTradingAccountField field = new CThostFtdcQryTradingAccountField();
+        field.setBrokerID(user.getBrokerId());
+        field.setInvestorID(user.getUserId());
+        return ctp.request(requestId -> traderApi.ReqQryTradingAccount(field, requestId));
+    }
+
+    /**
+     * 报单
+     * @param param 报单参数
+     * @return 报单
+     */
+    public OrderEntity order(TradeController.OrderParam param) {
+        CThostFtdcInputOrderField field = new CThostFtdcInputOrderField ();
+        field.setBrokerID(user.getBrokerId());
+        field.setInvestorID(user.getUserId());
+        field.setExchangeID(param.getExchangeId());
+        field.setInstrumentID(param.getInstrumentId());
+        // 买卖方向 0 买
+        field.setDirection(param.getDirection());
+        // 开平标志 0 开仓
+        field.setCombOffsetFlag(param.getCombOffsetFlag());
+        // 投机标志 1 投机
+        field.setCombHedgeFlag(param.getCombHedgeFlag());
+        // 成交条件 1 立即
+        field.setContingentCondition(param.getContingentCondition());
+        // 强平原因 0 非强平
+        field.setForceCloseReason(param.getForceCloseReason());
+        field.setLimitPrice(param.getLimitPrice());
+        // 报单价格条件  1任意价 2限价 3最优价 4最新价 ...
+        // 上期所只支持限价
+        field.setOrderPriceType(param.getOrderPriceType());
+        // 成交量类型 1任何数量
+        field.setVolumeCondition(param.getVolumeCondition());
+        // 有效期类型 1立即完成，否则撤销 2本节有效GFS 3当日有效GFD 4指定日期前有效 5撤销前有效 6集合竞价有效
+        field.setTimeCondition(param.getTimeCondition());
+        field.setVolumeTotalOriginal(param.getVolumeTotalOriginal());
+
+        Ctp<OrderEntity> ctp = new Ctp<>();
+        return ctp.request(requestId -> {
+            field.setRequestID(requestId);
+            return traderApi.ReqOrderInsert(field, requestId);
+        });
+    }
+
+    /**
+     * 报单查询
+     * @return 报单
+     */
+    public List<CThostFtdcOrderField> listOrder() {
+        CThostFtdcQryOrderField field = new CThostFtdcQryOrderField();
+        field.setBrokerID(user.getBrokerId());
+        field.setInvestorID(user.getUserId());
+        Ctp<List<CThostFtdcOrderField>> ctp = new Ctp<>();
+        return ctp.request(requestId -> traderApi.ReqQryOrder(field, requestId));
+    }
+
+    /**
+     * 查询手续费
+     */
+    public List<CThostFtdcInstrumentCommissionRateField> listCommissionRate(InstrumentEntity instrument) {
+        CThostFtdcQryInstrumentCommissionRateField field = new CThostFtdcQryInstrumentCommissionRateField();
+        field.setBrokerID(user.getBrokerId());
+        field.setInvestorID(user.getUserId());
+        field.setInstrumentID(instrument.getInstrumentID());
+        field.setExchangeID(instrument.getExchangeInstID());
+        Ctp<List<CThostFtdcInstrumentCommissionRateField>> ctp = new Ctp<>();
+
+        return ctp.request(requestId -> traderApi.ReqQryInstrumentCommissionRate(field, requestId));
+    }
+
+    /**
+     * 保存合约佣金
+     */
+    public Map<String, List<FeeEntity>> feeCollect() throws IOException, site.xleon.commons.cql.MyException, ClassNotFoundException, InstantiationException, IllegalAccessException, InterruptedException {
+        Page<InstrumentEntity> instruments = this.allTradingFutures();
+
+        HashMap<String, List<FeeEntity>> map = new HashMap<>();
+        for(InstrumentEntity instrument: instruments.getRecords()) {
+            List<CThostFtdcInstrumentCommissionRateField> rates = listCommissionRate(instrument);
+            Thread.sleep(300);
+            for (CThostFtdcInstrumentCommissionRateField item: rates) {
+                FeeEntity fee = new FeeEntity();
+                fee.setExchangeId(instrument.getExchangeID());
+                fee.setInstrumentId(instrument.getInstrumentID());
+                fee.setCloseRatioByMoney(BigDecimal.valueOf(item.getCloseRatioByMoney()).toString());
+                fee.setCloseRatioByVolume(BigDecimal.valueOf(item.getCloseRatioByVolume()).toString());
+                fee.setCloseTodayRatioByMoney(BigDecimal.valueOf(item.getCloseTodayRatioByMoney()).toString());
+                fee.setCloseTodayRatioByVolume(BigDecimal.valueOf(item.getCloseTodayRatioByVolume()).toString());
+                fee.setOpenRatioByMoney(BigDecimal.valueOf(item.getOpenRatioByMoney()).toString());
+                fee.setOpenRatioByVolume(BigDecimal.valueOf(item.getOpenRatioByVolume()).toString());
+
+                List<FeeEntity> exchanges = map.computeIfAbsent(fee.getExchangeId(), k -> new ArrayList<>());
+                exchanges.add(fee);
+            }
+        }
+        Path path = Paths.get("fee", MdService.getTradingDay() +  "-instrument-fee.json");
+        FileUtils.delete(path.toFile());
+        dataService.saveJson(map, path);
+        return map;
+    }
+
 }

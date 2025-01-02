@@ -1,5 +1,4 @@
 package site.xleon.future.ctp.tasks;
-;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import site.xleon.future.ctp.config.app_config.AppConfig;
@@ -8,7 +7,6 @@ import site.xleon.future.ctp.models.InstrumentEntity;
 import site.xleon.future.ctp.services.impl.TradeService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Paths;
@@ -24,24 +22,18 @@ import java.util.List;
 @Component
 @Slf4j
 public class TradeTask implements Runnable {
-    @Autowired
-    private ApplicationContext context;
-
-    @Autowired
-    private AppConfig appConfig;
-
-    @Autowired
-    private TradeService tradeService;
+    private final ApplicationContext context;
+    private final AppConfig appConfig;
+    private final TradeService tradeService;
 
     public void run() {
         Thread.currentThread().setName("TradeTask");
         // 创建交易日history、flow目录
         init();
-        // 登录交易前置
-        connect();
-        login();
+        // 监控交易连接状态
+        new Thread(this::monitorConnect).start();
         // 监控登录状态
-        monitorLogin();
+        new Thread(this::monitorLogin).start();
     }
 
     /**
@@ -74,51 +66,87 @@ public class TradeTask implements Runnable {
     }
 
     /**
-     * 连接交易前置并登录
+     * 监控交易前置连接状态变更
+     * 交易前置
+     * 没有断线 -> 等待状态更新
+     * 断线 -> 自动重连 -> 6s后重新查看状态
      */
-    public void connect() {
-        try {
-            log.info("交易前置 {} 连接", appConfig.getTraderFronts());
-            TradeService.connectFronts(appConfig.getTraderFronts());
-        } catch (Exception e) {
-            log.warn("交易前置 {} 连接失败", appConfig.getMarketFronts());
+    public void monitorConnect() {
+        // 监控交易登录状态
+        log.info("交易前置 监控连接状态");
+        while (true) {
+            synchronized (TradeService.connectLock) {
+                log.info("交易前置 连接状态: {} ", TradeService.getConnectState());
+                if (StateEnum.DISCONNECT != TradeService.getConnectState()){
+                    // 交易前置没有断线，监控连接状态
+                    try {
+                        TradeService.connectLock.wait();
+                        log.info("交易前置 连接状态更新: {} ", TradeService.getConnectState());
+                    } catch (Exception e) {
+                        log.error("error: ", e);
+                    }
+                }
+            }
+
+            // 交易前置断线6s后重连
+            if (StateEnum.DISCONNECT == TradeService.getConnectState()) {
+                try {
+                    log.info("交易前置 自动重连");
+                    TradeService.connectFronts(appConfig.getTraderFronts());
+                } catch (Exception e) {
+                    log.error("交易前置 连接: {}", e.getMessage());
+                }
+
+                try {
+                    Thread.sleep(6000);
+                }catch (Exception e) {
+                    log.error("交易前置 登录: {}", e.getMessage());
+                }
+            }
         }
     }
-
-    public void login() {
-        try {
-            log.info("交易前置，用户 {} 登录 ", appConfig.getUser().getUserId());
-            tradeService.login(appConfig.getUser());
-        } catch (Exception e) {
-            log.info("交易前置，用户 {} 登录失败", appConfig.getUser().getUserId());
-        }
-    }
-
 
     /**
      * 监控交易前置登录状态变更
      * 交易前置
-     * 没有登录 -> 自动登录
-     * 已登录 -> 更新合约信息
+     * 登录 -> 更新合约
+     * 没有登录 -> 等待状态更新
+     * 断线 -> 自动重连 -> 6s后重新查看状态
      */
     public void monitorLogin() {
-        // 监控交易登录状态
-        synchronized (TradeService.loginLock) {
-            log.info("交易前置 监控登录状态");
-            while (true) {
-                log.info("交易前置 登录状态变更: {} ", TradeService.getLoginState());
-                try {
-                    if (TradeService.getLoginState() != StateEnum.SUCCESS) {
-                        // 没有登录
-                        Thread.sleep(12000);
-                        new Thread(this::login).start();
-                    } else {
-                        // 登录成功
-                        updateInstruments();
+        log.info("交易前置 监控登录状态");
+        while (true) {
+            // 监控交易登录状态
+            synchronized (TradeService.loginLock) {
+                log.info("交易前置 登录状态: {} ", TradeService.getLoginState());
+                if (StateEnum.SUCCESS == TradeService.getLoginState()) {
+                    // 登录成功
+                    updateInstruments();
+                }
+
+                if ( StateEnum.DISCONNECT != TradeService.getLoginState() ) {
+                    // 没有登录
+                    try {
+                        TradeService.loginLock.wait();
+                    }   catch (Exception e) {
+                        log.error("error: ", e);
                     }
-                    TradeService.loginLock.wait();
+                }
+            }
+
+            if (StateEnum.DISCONNECT == TradeService.getLoginState()) {
+                // 6s后重新登录
+                try {
+                    log.info("交易前置 自动重新登录");
+                    tradeService.login(appConfig.getUser());
                 } catch (Exception e) {
-                    log.error("error: ", e);
+                    log.error("交易前置 登录: {}", e.getMessage());
+                }
+
+                try {
+                    Thread.sleep(6000);
+                }catch (Exception e) {
+                    log.error("交易前置 登录: {}", e.getMessage());
                 }
             }
         }

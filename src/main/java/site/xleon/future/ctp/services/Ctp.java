@@ -29,7 +29,7 @@ public class Ctp<T> {
      */
     private final Object lock = new Object();
 
-    private int timeout = 30000;
+    private int timeout = 60000;
 
     /**
      * 请求响应

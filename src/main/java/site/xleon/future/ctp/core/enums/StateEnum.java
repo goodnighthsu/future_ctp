@@ -11,6 +11,7 @@ public enum StateEnum {
     DISCONNECT(-1,  "离线"),
     SUCCESS(0, "成功"),
     TIMEOUT(1, "连接超时"),
+    LOADING(2, "连接中"),
     NETWORK_READ_FAIL(0x1001, " 网络读失败"),
     NETWORK_WRITE_FAIL(0x1002, "网络写失败"),
     RECEIVE_HEARTBEAT_TIMEOUT(0x2001, "接收心跳超时"),
