@@ -15,6 +15,10 @@ import java.util.List;
 @ConfigurationProperties(prefix = "config")
 public class AppConfig {
     private MySqlConfig mysql;
+    /**
+     * rabbit mq 配置
+     */
+    private MqConfig mq;
     private UserConfig user;
     private List<String> traderFronts = new ArrayList<>();
     private List<String> marketFronts = new ArrayList<>();
