@@ -38,5 +38,6 @@ logs/
 test/
 history/
 backup/
+kline/
 
 *.con

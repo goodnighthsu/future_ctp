@@ -37,6 +37,11 @@ public class DataService {
     public static final String DIR = "data";
 
     /**
+     * k线数据
+     */
+    public static final String KLINE_DIR = "kline";
+
+    /**
      * 从主服务器下载的行情文件的保存目录
      */
     public static final String BACK_UP = "backup";
@@ -224,7 +229,6 @@ public class DataService {
 
         // k线信息 时间， 开盘， 最高，收盘，最低
         List<TradingEntity> periods = new ArrayList<>();
-
         TradingEntity lastKLine = new TradingEntity();
         lastKLine.setVolume(0L);
         int last = 0;
@@ -232,7 +236,7 @@ public class DataService {
         boolean isTradingOpen = true;
         // 收盘成交量
         Long closeVolume = 0L;
-        log.info("instrument/tradingday/line: {}/{}/{}/{}", instrument,tradingDay, quotes.size(), timeLines.size());
+        log.info("instrument/trading day/line: {}/{}/{}/{}", instrument,tradingDay, quotes.size(), timeLines.size());
         for (String timeLine : timeLines) {
             try {
                 long openTime = df.parse(timeLine).getTime();
@@ -327,7 +331,7 @@ public class DataService {
                 // TODO: 当天交易，实际交易时间缺失
                 /**
                  * eg: 交易日是8/14周一, 实际交易日可能是 8/11的21：00 到 8/12的2:00 到 8/14的9：00-15：00
-                 * 现在使用的是收到行情里的apction day,  如果是当日交易就没有尚未发生交易的日期
+                 * 现在使用的是收到行情里的action day,  如果是当日交易就没有尚未发生交易的日期
                  * tradingActionTime为空
                  */
                 if (kLine.getTradingActionTime() == null) {
@@ -339,5 +343,60 @@ public class DataService {
         }
 
         return periods;
+    }
+
+    /**
+     * 创建合约的K线数据
+     */
+    public void createKLine(String instrument,
+                            String tradingDay) throws ParseException, IOException {
+        int[] periods = new int[]{5, 30, 60, 300, 900, 3600};
+        for (Integer interval : periods) {
+            List<TradingEntity> period  = listKLines(instrument, interval, tradingDay);
+//             文件名 合约_交易日_周期.csv， eg: au2025_20250113_5.csv
+//             instrument id,trading day, open price,highest price,lowest price,volume, tickVolume, open interest,close price, trading action time
+            String fileName = instrument + "_" + tradingDay + "_" + interval.toString() + ".csv";
+            Path path = Paths.get(DataService.KLINE_DIR, instrument, fileName);
+            String title = "instrument id,trading day,open price,highest price,lowest price,volume,tick_volume,open interest,close price,trading action time\r\n";
+            FileUtils.writeStringToFile(path.toFile(), title, StandardCharsets.UTF_8, false);
+            List<String> datas = period.stream().map(item ->
+                    instrument + ","
+                            + tradingDay + ","
+                            + item.getOpenPrice() + ","
+                            + item.getHighestPrice() + ","
+                            + item.getLowestPrice() + ","
+                            + item.getVolume() + ","
+                            + item.getTickVolume() + ","
+                            + item.getOpenInterest() + ","
+                            + item.getClosePrice() + ","
+                            + item.getTradingActionTime()).collect(Collectors.toList());
+            FileUtils.writeLines(path.toFile(), datas, true);
+        }
+
+        // 日线数据
+        String fileName = instrument + ".csv";
+        Path path = Paths.get(DataService.KLINE_DIR, instrument, fileName);
+        if (!path.toFile().exists()) {
+            String title = "instrument id,trading day,open price,highest price,lowest price,volume,tick_volume,open interest,close price,trading action time\r\n";
+            FileUtils.write(path.toFile(), title, StandardCharsets.UTF_8);
+        }
+
+        List<String> quotes = this.readMarket(tradingDay, instrument, 0);
+        if (quotes.isEmpty()){
+            return;
+        }
+        String lastString = quotes.get(quotes.size() - 1);
+        List<String> data = Arrays.stream(lastString.split(",")).collect(Collectors.toList());
+        lastString = data.get(0) + ","
+                + data.get(1) + ","
+                + data.get(10) + ","
+                + data.get(11) + ","
+                + data.get(12) + ","
+                + data.get(13) + ","
+                + data.get(13) + ","
+                + data.get(14) + ","
+                + data.get(15) + ","
+                + data.get(43) + "\r\n";
+        FileUtils.write(path.toFile(), lastString, StandardCharsets.UTF_8, true);
     }
 }

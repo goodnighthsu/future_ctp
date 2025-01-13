@@ -1,7 +1,6 @@
 package site.xleon.future.ctp.controllers;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,6 @@ import java.io.IOException;
 @AllArgsConstructor
 public class MqController {
     private final MqService mqService;
-
 
     @Data
     private static class ConnectParams  {

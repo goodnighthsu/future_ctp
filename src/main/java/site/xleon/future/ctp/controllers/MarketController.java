@@ -28,12 +28,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -388,6 +391,42 @@ public class MarketController {
         List<TradingEntity> result = new ArrayList<>();
         trades.forEach(item -> result.addAll(0, item));
         return Result.success(result);
+    }
+
+    /**
+     * 保存合约k线(5s 30s 1m 5m 15m 1h, 日线),到kline/instrument文件夹
+     * 创建时会先删除上次创建的所有数据
+     */
+    @GetMapping("/instrument/kLine/create")
+    public Result<String> createKLine() throws ParseException, IOException, MyException {
+        // 删除原来kline目录下所有文件，避免重复创建合约的日线数据
+        Path kLinePath = Paths.get(DataService.KLINE_DIR);
+        try {
+            FileUtils.deleteDirectory(kLinePath.toFile());
+        } catch (Exception e) {
+            throw new MyException("kline文件夹删除失败");
+        }
+//        扫描data文件夹，创建合约的k线数据
+        Path dataPath = Paths.get(DataService.DIR);
+        for (File subDir: Objects.requireNonNull(dataPath.toFile().listFiles())) {
+            if (subDir.isFile()) {
+                continue;
+            }
+            for (File file: Objects.requireNonNull(subDir.listFiles())) {
+                // 正则表达式: 1-2个字母开头，后跟4位数字（YYMM），最后以.csv结尾
+                String regex = "^([a-zA-Z]{1,2}\\d{4})_(\\d{8})\\.csv$";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(file.getName());
+                if (matcher.find()) {
+                    String instrument = matcher.group(1);
+                    String tradingDay = matcher.group(2);
+                    log.info("instrument: {}", instrument);
+                    log.info("trading day: {}",tradingDay);
+                    dataService.createKLine(instrument, tradingDay);
+                }
+            }
+        }
+        return Result.success("success");
     }
 
     /**
