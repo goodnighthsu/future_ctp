@@ -45,7 +45,6 @@
             <artifactId>thostmduserapi</artifactId>
             <version>1.0</version>
         </dependency>
-
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -156,9 +155,9 @@
         </dependency>
 
         <dependency>
-            <groupId>site.xleon.future</groupId>
+            <groupId>site.xleon</groupId>
             <artifactId>common_api</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
 
         <!-- test -->

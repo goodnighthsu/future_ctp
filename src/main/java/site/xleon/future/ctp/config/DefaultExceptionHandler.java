@@ -3,7 +3,7 @@ package site.xleon.future.ctp.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.http.HttpStatus;
-import site.xleon.commons.models.Result;
+import site.xleon.commons.cql.Result;
 import site.xleon.future.ctp.core.MyException;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;

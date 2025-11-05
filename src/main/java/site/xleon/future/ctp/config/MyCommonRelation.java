@@ -22,5 +22,5 @@ public class MyCommonRelation implements CommonRelation {
      */
     private String modelPrefix = "site.xleon.future.ctp.models";
 
-    private String[][] datas = new String[][]{};
+    private String[][] data = new String[][]{};
 }
